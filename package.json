@@ -1,0 +1,32 @@
+{
+  "name": "delivery-rapidingo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "homepage": "https://eduvc71-code.github.io/delivery-rapidingo",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@google/genai": "^0.12.0",
+    "lucide-react": "^0.344.0",
+    "recharts": "^2.12.2",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@vitejs/plugin-react": "^4.3.0",
+    "gh-pages": "^6.1.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.4.0"
+  }
+}
