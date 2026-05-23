@@ -1,0 +1,73 @@
+<html>
+<head>
+<title>constants.ts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+.s4 { color: #7a7e85;}
+.s5 { color: #c77dbb; font-style: italic;}
+.s6 { color: #2aacb8; font-style: italic;}
+.s7 { color: #56a8f5;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+constants.ts</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s2">{ OrderType, User, UserRole, Order, OrderStatus } </span><span class="s0">from </span><span class="s2">'</span><span class="s3">./types</span><span class="s2">';</span>
+<span class="s0">import </span><span class="s2">{ Utensils, ShoppingCart, Pill, Package } </span><span class="s0">from </span><span class="s2">'</span><span class="s3">lucide-react</span><span class="s2">';</span>
+
+<span class="s0">export const </span><span class="s2">APP_NAME = &quot;</span><span class="s3">DELIVERY RAPIDINGO</span><span class="s2">&quot;;</span>
+
+<span class="s0">export const </span><span class="s2">ORDER_TYPES = </span><span class="s1">[</span>
+  <span class="s2">{ </span><span class="s1">type</span><span class="s2">: OrderType.RESTAURANT, </span><span class="s1">icon</span><span class="s2">: Utensils, </span><span class="s1">label</span><span class="s2">: '</span><span class="s3">Restaurante</span><span class="s2">', </span><span class="s1">color</span><span class="s2">: '</span><span class="s3">bg-orange-100 text-orange-600</span><span class="s2">' },</span>
+  <span class="s2">{ </span><span class="s1">type</span><span class="s2">: OrderType.SUPERMARKET, </span><span class="s1">icon</span><span class="s2">: ShoppingCart, </span><span class="s1">label</span><span class="s2">: '</span><span class="s3">Super</span><span class="s2">', </span><span class="s1">color</span><span class="s2">: '</span><span class="s3">bg-green-100 text-green-600</span><span class="s2">' },</span>
+  <span class="s2">{ </span><span class="s1">type</span><span class="s2">: OrderType.PHARMACY, </span><span class="s1">icon</span><span class="s2">: Pill, </span><span class="s1">label</span><span class="s2">: '</span><span class="s3">Farmacia</span><span class="s2">', </span><span class="s1">color</span><span class="s2">: '</span><span class="s3">bg-blue-100 text-blue-600</span><span class="s2">' },</span>
+  <span class="s2">{ </span><span class="s1">type</span><span class="s2">: OrderType.OTHER, </span><span class="s1">icon</span><span class="s2">: Package, </span><span class="s1">label</span><span class="s2">: '</span><span class="s3">Otros</span><span class="s2">', </span><span class="s1">color</span><span class="s2">: '</span><span class="s3">bg-purple-100 text-purple-600</span><span class="s2">' },</span>
+<span class="s1">]</span><span class="s2">;</span>
+
+<span class="s0">export const </span><span class="s2">MOCK_ADDRESS = &quot;</span><span class="s3">Av. Principal 123, Ciudad Central</span><span class="s2">&quot;;</span>
+
+<span class="s2">// </span><span class="s4">Datos simulados por defecto (para primera carga)</span>
+<span class="s0">export const </span><span class="s2">MOCK_CLIENT_USER: User = {</span>
+  <span class="s1">id</span><span class="s2">: '</span><span class="s3">client-123</span><span class="s2">',</span>
+  <span class="s1">role</span><span class="s2">: UserRole.CLIENT,</span>
+  <span class="s1">name</span><span class="s2">: '</span><span class="s3">JUAN PÉREZ</span><span class="s2">',</span>
+  <span class="s1">phone</span><span class="s2">: '</span><span class="s3">+591 60000001</span><span class="s2">',</span>
+  <span class="s1">isVerified</span><span class="s2">: </span><span class="s5">true</span>
+<span class="s2">};</span>
+
+<span class="s0">export const </span><span class="s2">MOCK_DELIVERY_USER: User = {</span>
+  <span class="s1">id</span><span class="s2">: '</span><span class="s3">delivery-123</span><span class="s2">',</span>
+  <span class="s1">role</span><span class="s2">: UserRole.DELIVERY,</span>
+  <span class="s1">name</span><span class="s2">: '</span><span class="s3">MARIO VELOZ</span><span class="s2">',</span>
+  <span class="s1">phone</span><span class="s2">: '</span><span class="s3">+591 70000001</span><span class="s2">',</span>
+  <span class="s1">selfie</span><span class="s2">: '</span><span class="s3">data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7</span><span class="s2">', // </span><span class="s4">Pixel blanco dummy</span>
+  <span class="s1">isVerified</span><span class="s2">: </span><span class="s5">true</span>
+<span class="s2">};</span>
+
+<span class="s2">// </span><span class="s4">Historial simulado para rellenar estadísticas</span>
+<span class="s0">export const </span><span class="s2">MOCK_HISTORY: Order</span><span class="s1">[] </span><span class="s2">= </span><span class="s1">[</span>
+  <span class="s2">{</span>
+    <span class="s1">id</span><span class="s2">: '</span><span class="s3">1</span><span class="s2">', </span><span class="s1">clientId</span><span class="s2">: '</span><span class="s3">c1</span><span class="s2">', </span><span class="s1">type</span><span class="s2">: OrderType.RESTAURANT, </span><span class="s1">description</span><span class="s2">: '</span><span class="s3">Pizza</span><span class="s2">',</span>
+    <span class="s1">location</span><span class="s2">: { </span><span class="s1">lat</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">lng</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">address</span><span class="s2">: '' }, </span><span class="s1">status</span><span class="s2">: OrderStatus.COMPLETED,</span>
+    <span class="s1">createdAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">86400000</span><span class="s2">, </span><span class="s1">completedAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">86398000</span><span class="s2">, </span><span class="s1">servicePrice</span><span class="s2">: </span><span class="s6">15</span><span class="s2">, </span><span class="s1">productPrice</span><span class="s2">: </span><span class="s6">50</span><span class="s2">, </span><span class="s1">chatHistory</span><span class="s2">: </span><span class="s1">[]</span><span class="s2">, </span><span class="s1">photos</span><span class="s2">: </span><span class="s1">[]</span>
+  <span class="s2">},</span>
+  <span class="s2">{</span>
+    <span class="s1">id</span><span class="s2">: '</span><span class="s3">2</span><span class="s2">', </span><span class="s1">clientId</span><span class="s2">: '</span><span class="s3">c1</span><span class="s2">', </span><span class="s1">type</span><span class="s2">: OrderType.PHARMACY, </span><span class="s1">description</span><span class="s2">: '</span><span class="s3">Pastillas</span><span class="s2">',</span>
+    <span class="s1">location</span><span class="s2">: { </span><span class="s1">lat</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">lng</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">address</span><span class="s2">: '' }, </span><span class="s1">status</span><span class="s2">: OrderStatus.COMPLETED,</span>
+    <span class="s1">createdAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">172800000</span><span class="s2">, </span><span class="s1">completedAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">172790000</span><span class="s2">, </span><span class="s1">servicePrice</span><span class="s2">: </span><span class="s6">10</span><span class="s2">, </span><span class="s1">productPrice</span><span class="s2">: </span><span class="s6">20</span><span class="s2">, </span><span class="s1">chatHistory</span><span class="s2">: </span><span class="s1">[]</span><span class="s2">, </span><span class="s1">photos</span><span class="s2">: </span><span class="s1">[]</span>
+  <span class="s2">},</span>
+  <span class="s2">{</span>
+    <span class="s1">id</span><span class="s2">: '</span><span class="s3">3</span><span class="s2">', </span><span class="s1">clientId</span><span class="s2">: '</span><span class="s3">c1</span><span class="s2">', </span><span class="s1">type</span><span class="s2">: OrderType.SUPERMARKET, </span><span class="s1">description</span><span class="s2">: '</span><span class="s3">Refrescos</span><span class="s2">',</span>
+    <span class="s1">location</span><span class="s2">: { </span><span class="s1">lat</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">lng</span><span class="s2">: </span><span class="s6">0</span><span class="s2">, </span><span class="s1">address</span><span class="s2">: '' }, </span><span class="s1">status</span><span class="s2">: OrderStatus.COMPLETED,</span>
+    <span class="s1">createdAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">259200000</span><span class="s2">, </span><span class="s1">completedAt</span><span class="s2">: Date.</span><span class="s7">now</span><span class="s1">() </span><span class="s2">- </span><span class="s6">259195000</span><span class="s2">, </span><span class="s1">servicePrice</span><span class="s2">: </span><span class="s6">20</span><span class="s2">, </span><span class="s1">productPrice</span><span class="s2">: </span><span class="s6">100</span><span class="s2">, </span><span class="s1">chatHistory</span><span class="s2">: </span><span class="s1">[]</span><span class="s2">, </span><span class="s1">photos</span><span class="s2">: </span><span class="s1">[]</span>
+  <span class="s2">}</span>
+<span class="s1">]</span><span class="s2">;</span></pre>
+</body>
+</html>

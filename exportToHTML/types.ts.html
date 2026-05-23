@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>types.ts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+.s4 { color: #7a7e85;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+types.ts</font>
+</center></td></tr></table>
+<pre><span class="s0">export enum </span><span class="s2">UserRole {</span>
+  <span class="s2">CLIENT = '</span><span class="s3">CLIENT</span><span class="s2">',</span>
+  <span class="s2">DELIVERY = '</span><span class="s3">DELIVERY</span><span class="s2">'</span>
+<span class="s2">}</span>
+
+<span class="s0">export enum </span><span class="s2">OrderStatus {</span>
+  <span class="s2">DRAFT = '</span><span class="s3">DRAFT</span><span class="s2">',</span>
+  <span class="s2">PENDING_PRICE = '</span><span class="s3">PENDING_PRICE</span><span class="s2">', // </span><span class="s4">Client sent, waiting for Delivery to set price</span>
+  <span class="s2">WAITING_CONFIRM = '</span><span class="s3">WAITING_CONFIRM</span><span class="s2">', // </span><span class="s4">Delivery set price, waiting for Client to confirm</span>
+  <span class="s2">CONFIRMED_BY_CLIENT = '</span><span class="s3">CONFIRMED_BY_CLIENT</span><span class="s2">', // </span><span class="s4">Client agreed, waiting for Delivery to start</span>
+  <span class="s2">IN_DELIVERY = '</span><span class="s3">IN_DELIVERY</span><span class="s2">', // </span><span class="s4">Delivery started, on the way</span>
+  <span class="s2">COMPLETED = '</span><span class="s3">COMPLETED</span><span class="s2">' // </span><span class="s4">Delivered and paid</span>
+<span class="s2">}</span>
+
+<span class="s0">export enum </span><span class="s2">OrderType {</span>
+  <span class="s2">RESTAURANT = '</span><span class="s3">Restaurant</span><span class="s2">',</span>
+  <span class="s2">SUPERMARKET = '</span><span class="s3">Supermercado</span><span class="s2">',</span>
+  <span class="s2">PHARMACY = '</span><span class="s3">Farmacia</span><span class="s2">',</span>
+  <span class="s2">OTHER = '</span><span class="s3">Otros</span><span class="s2">'</span>
+<span class="s2">}</span>
+
+<span class="s0">export interface </span><span class="s2">User {</span>
+  <span class="s2">id: string;</span>
+  <span class="s2">role: UserRole;</span>
+  <span class="s2">phone: string;</span>
+  <span class="s2">name: string; // </span><span class="s4">Replaces email</span>
+  <span class="s2">dniFront?: string; // </span><span class="s4">Base64 or URL (Legacy)</span>
+  <span class="s2">dniBack?: string;  // </span><span class="s4">Base64 or URL (Legacy)</span>
+  <span class="s2">selfie?: string;   // </span><span class="s4">New field for Delivery selfie</span>
+  <span class="s2">isVerified?: boolean;</span>
+<span class="s2">}</span>
+
+<span class="s0">export interface </span><span class="s2">Order {</span>
+  <span class="s2">id: string;</span>
+  <span class="s2">clientId: string;</span>
+  <span class="s2">deliveryId?: string;</span>
+  <span class="s2">type: OrderType;</span>
+  <span class="s2">description: string;</span>
+  <span class="s2">location: {</span>
+    <span class="s2">lat: number;</span>
+    <span class="s2">lng: number;</span>
+    <span class="s2">address: string;</span>
+  <span class="s2">};</span>
+  <span class="s2">deliveryLocation?: {</span>
+    <span class="s2">lat: number;</span>
+    <span class="s2">lng: number;</span>
+  <span class="s2">};</span>
+  <span class="s2">status: OrderStatus;</span>
+  <span class="s2">createdAt: number;</span>
+  <span class="s2">completedAt?: number; // </span><span class="s4">Timestamp when order is finished</span>
+  <span class="s2">productPrice?: number;</span>
+  <span class="s2">servicePrice?: number;</span>
+  <span class="s2">totalPrice?: number;</span>
+  <span class="s2">deliveryDuration?: number; // </span><span class="s4">in minutes</span>
+  <span class="s2">chatHistory: ChatMessage</span><span class="s1">[]</span><span class="s2">;</span>
+  <span class="s2">photos: string</span><span class="s1">[]</span><span class="s2">; // </span><span class="s4">URLs or Base64</span>
+<span class="s2">}</span>
+
+<span class="s0">export interface </span><span class="s2">ChatMessage {</span>
+  <span class="s2">id: string;</span>
+  <span class="s2">senderId: string;</span>
+  <span class="s2">text: string;</span>
+  <span class="s2">timestamp: number;</span>
+  <span class="s2">isSystem?: boolean;</span>
+<span class="s2">}</span>
+
+<span class="s0">export interface </span><span class="s2">DeliveryReport {</span>
+  <span class="s2">date: string;</span>
+  <span class="s2">totalOrders: number;</span>
+  <span class="s2">totalEarnings: number;</span>
+  <span class="s2">avgDuration: number;</span>
+<span class="s2">}</span></pre>
+</body>
+</html>

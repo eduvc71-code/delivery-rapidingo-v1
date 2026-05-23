@@ -3,22 +3,27 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://eduvc71-code.github.io/delivery-rapidingo",
+  "homepage": "https://eduvc71-code.github.io/Delivery_Rapidingo",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1",
+    "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1 -BuildType Release",
+    "build:pwas": "npm run build && powershell -ExecutionPolicy Bypass -File scripts/package_pwas.ps1",
     "preview": "vite preview",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:pwas",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@google/genai": "^0.12.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "firebase": "^12.11.0",
+    "lucide-react": "^0.344.0",
+    "pocketbase": "^0.26.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@google/genai": "^0.12.0",
-    "lucide-react": "^0.344.0",
     "recharts": "^2.12.2",
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/vite": "^4.0.0"
+    "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

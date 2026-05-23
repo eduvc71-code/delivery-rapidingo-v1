@@ -1,0 +1,75 @@
+<html>
+<head>
+<title>index.html</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #d5b778;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bababa;}
+.s3 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+index.html</font>
+</center></td></tr></table>
+<pre><span class="s0">&lt;!DOCTYPE </span><span class="s2">html</span><span class="s0">&gt;</span>
+<span class="s0">&lt;html </span><span class="s2">lang</span><span class="s3">=&quot;es&quot;</span><span class="s0">&gt;</span>
+  <span class="s0">&lt;head&gt;</span>
+    <span class="s0">&lt;meta </span><span class="s2">charset</span><span class="s3">=&quot;UTF-8&quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;meta </span><span class="s2">name</span><span class="s3">=&quot;viewport&quot; </span><span class="s2">content</span><span class="s3">=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;meta </span><span class="s2">name</span><span class="s3">=&quot;theme-color&quot; </span><span class="s2">content</span><span class="s3">=&quot;#2563eb&quot; </span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;meta </span><span class="s2">name</span><span class="s3">=&quot;apple-mobile-web-app-capable&quot; </span><span class="s2">content</span><span class="s3">=&quot;yes&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;meta </span><span class="s2">name</span><span class="s3">=&quot;apple-mobile-web-app-status-bar-style&quot; </span><span class="s2">content</span><span class="s3">=&quot;black-translucent&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;title&gt;</span><span class="s1">DELIVERY RAPIDINGO</span><span class="s0">&lt;/title&gt;</span>
+    <span class="s0">&lt;link </span><span class="s2">rel</span><span class="s3">=&quot;icon&quot; </span><span class="s2">href</span><span class="s3">=&quot;data:,&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;link </span><span class="s2">rel</span><span class="s3">=&quot;manifest&quot; </span><span class="s2">href</span><span class="s3">=&quot;./manifest.json&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;link </span><span class="s2">rel</span><span class="s3">=&quot;stylesheet&quot; </span><span class="s2">href</span><span class="s3">=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.css&quot; </span><span class="s2">integrity</span><span class="s3">=&quot;sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=&quot; </span><span class="s2">crossorigin</span><span class="s3">=&quot;&quot;</span><span class="s0">/&gt;</span>
+    <span class="s0">&lt;script </span><span class="s2">src</span><span class="s3">=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.js&quot; </span><span class="s2">integrity</span><span class="s3">=&quot;sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=&quot; </span><span class="s2">crossorigin</span><span class="s3">=&quot;&quot;</span><span class="s0">&gt;&lt;/script&gt;</span>
+    <span class="s0">&lt;script </span><span class="s2">src</span><span class="s3">=&quot;https://cdn.tailwindcss.com&quot;</span><span class="s0">&gt;&lt;/script&gt;</span>
+    <span class="s0">&lt;link </span><span class="s2">href</span><span class="s3">=&quot;https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap&quot; </span><span class="s2">rel</span><span class="s3">=&quot;stylesheet&quot;</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;style&gt;</span>
+      <span class="s1">body { font-family: 'Inter', sans-serif; overscroll-behavior-y: none; background-color: #f3f4f6; }</span>
+      <span class="s1">::-webkit-scrollbar { width: 4px; }</span>
+      <span class="s1">::-webkit-scrollbar-track { background: #f1f1f1; }</span>
+      <span class="s1">::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }</span>
+      <span class="s1">.scrollbar-hide::-webkit-scrollbar { display: none; }</span>
+      <span class="s1">.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }</span>
+    <span class="s0">&lt;/style&gt;</span>
+    <span class="s0">&lt;script </span><span class="s2">type</span><span class="s3">=&quot;importmap&quot;</span><span class="s0">&gt;</span>
+<span class="s1">{</span>
+  <span class="s1">&quot;imports&quot;: {</span>
+    <span class="s1">&quot;react&quot;: &quot;https://esm.sh/react@18.2.0&quot;,</span>
+    <span class="s1">&quot;react-dom&quot;: &quot;https://esm.sh/react-dom@18.2.0&quot;,</span>
+    <span class="s1">&quot;react-dom/client&quot;: &quot;https://esm.sh/react-dom@18.2.0/client&quot;,</span>
+    <span class="s1">&quot;react/jsx-runtime&quot;: &quot;https://esm.sh/react@18.2.0/jsx-runtime&quot;,</span>
+    <span class="s1">&quot;lucide-react&quot;: &quot;https://esm.sh/lucide-react@0.344.0&quot;,</span>
+    <span class="s1">&quot;@google/genai&quot;: &quot;https://esm.sh/@google/genai@0.12.0&quot;,</span>
+    <span class="s1">&quot;recharts&quot;: &quot;https://esm.sh/recharts@2.12.2&quot;,</span>
+    <span class="s1">&quot;react-dom/&quot;: &quot;https://esm.sh/react-dom@^19.2.3/&quot;,</span>
+    <span class="s1">&quot;react/&quot;: &quot;https://esm.sh/react@^19.2.3/&quot;,</span>
+    <span class="s1">&quot;vite&quot;: &quot;https://esm.sh/vite@^7.3.1&quot;,</span>
+    <span class="s1">&quot;@vitejs/plugin-react&quot;: &quot;https://esm.sh/@vitejs/plugin-react@^5.1.2&quot;,</span>
+    <span class="s1">&quot;@tailwindcss/vite&quot;: &quot;https://esm.sh/@tailwindcss/vite@^4.1.18&quot;</span>
+  <span class="s1">}</span>
+<span class="s1">}</span>
+<span class="s0">&lt;/script&gt;</span>
+  <span class="s0">&lt;/head&gt;</span>
+  <span class="s0">&lt;body&gt;</span>
+    <span class="s0">&lt;div </span><span class="s2">id</span><span class="s3">=&quot;root&quot;</span><span class="s0">&gt;&lt;/div&gt;</span>
+    <span class="s0">&lt;script </span><span class="s2">type</span><span class="s3">=&quot;module&quot; </span><span class="s2">src</span><span class="s3">=&quot;./index.tsx&quot;</span><span class="s0">&gt;&lt;/script&gt;</span>
+    <span class="s0">&lt;script&gt;</span>
+      <span class="s1">if ('serviceWorker' in navigator) {</span>
+        <span class="s1">window.addEventListener('load', () =&gt; {</span>
+          <span class="s1">navigator.serviceWorker.register('./sw.js')</span>
+            <span class="s1">.then(reg =&gt; console.log('SW OK'))</span>
+            <span class="s1">.catch(err =&gt; console.log('SW Error', err));</span>
+        <span class="s1">});</span>
+      <span class="s1">}</span>
+    <span class="s0">&lt;/script&gt;</span>
+  <span class="s0">&lt;/body&gt;</span>
+<span class="s0">&lt;/html&gt;</span></pre>
+</body>
+</html>

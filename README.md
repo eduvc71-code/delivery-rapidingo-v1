@@ -18,3 +18,24 @@ View your app in AI Studio: https://ai.studio/apps/drive/1Q7l-QzBvmPewhDAjeBTzS2
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Android APKs por rol
+
+El proyecto Android tiene dos flavors: `cliente` y `delivery`. Para generar solo las APKs Android separadas por rol:
+
+```powershell
+npm run build:android
+```
+
+Esto compila las variantes debug instalables y copia los archivos a:
+
+```text
+dist/android/rapidingo-cliente-debug.apk
+dist/android/rapidingo-delivery-debug.apk
+```
+
+Para release:
+
+```powershell
+npm run build:android:release
+```

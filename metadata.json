@@ -1,5 +1,5 @@
 {
-  "name": "Delivery RAPIDINGO",
+  "name": "DELIVERY RAPIDINGO",
   "description": "Una aplicación completa de delivery con módulos para clientes y repartidores, incluyendo gestión de pedidos en tiempo real, negociación de precios y reportes.",
   "requestFramePermissions": [
     "camera",

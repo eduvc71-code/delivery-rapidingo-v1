@@ -3,16 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#e50914" />
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Delivery RAPIDINGO</title>
+    <meta name="apple-mobile-web-app-title" content="Rapidingo">
+    <title>DELIVERY RAPIDINGO</title>
     <link rel="icon" href="data:,">
-    <link rel="manifest" href="./manifest.json">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json" id="app-manifest">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" id="apple-touch-icon">
+    <script>
+      (function () {
+        var role = new URLSearchParams(window.location.search).get('role');
+        var path = window.location.pathname.toLowerCase();
+        if (!role && (path.endsWith('/delivery-rapidingo/') || path.endsWith('/delivery-rapidingo/index.html'))) {
+          var rootPath = window.location.pathname.replace(/index\.html$/i, '');
+          if (!rootPath.endsWith('/')) rootPath += '/';
+          window.location.replace(rootPath + 'cliente/' + window.location.search + window.location.hash);
+          return;
+        }
+        if (!role && (path.indexOf('/cliente/') !== -1 || path.indexOf('/client/') !== -1)) role = 'client';
+        if (!role && path.indexOf('/delivery/') !== -1) role = 'delivery';
+        window.__RAPIDINGO_ROLE = role || '';
+        var manifest = './manifest.json';
+        var icon = './icons/icon-192.png';
+        var title = 'Rapidingo';
+        var theme = '#e50914';
+
+        if (role === 'client') {
+          manifest = './manifest-client.json';
+          icon = './icons/client-192.png';
+          title = 'Rapidingo Cliente';
+          theme = '#e50914';
+        } else if (role === 'delivery') {
+          manifest = './manifest-delivery.json';
+          icon = './icons/delivery-192.png';
+          title = 'Rapidingo Delivery';
+          theme = '#e50914';
+        }
+
+        document.title = title;
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', theme);
+        document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', title);
+        document.getElementById('app-manifest').setAttribute('href', manifest);
+        document.getElementById('apple-touch-icon').setAttribute('href', icon);
+      })();
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
     <style>
-      body { font-family: 'Inter', sans-serif; overscroll-behavior-y: none; background-color: #f3f4f6; }
+      html, body, #root { min-height: 100%; height: 100%; }
+      body { font-family: 'Inter', sans-serif; overscroll-behavior-y: none; background-color: #f2f2f2; color: #0d1321; }
+      @supports (height: 100dvh) {
+        html, body, #root { min-height: 100dvh; height: 100dvh; }
+      }
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; }
       ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }

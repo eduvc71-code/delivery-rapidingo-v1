@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>gradle.properties</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #7a7e85;}
+.s1 { color: #bcbec4;}
+.s2 { color: #cf8e6d;}
+.s3 { color: #808080;}
+.s4 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+gradle.properties</font>
+</center></td></tr></table>
+<pre><span class="s0"># Enable AndroidX support</span>
+<span class="s2">android.useAndroidX</span><span class="s3">=</span><span class="s4">true</span>
+<span class="s0"># Automatically convert third-party libraries to use AndroidX</span>
+<span class="s2">android.enableJetifier</span><span class="s3">=</span><span class="s4">true</span>
+<span class="s2">android.defaults.buildfeatures.resvalues</span><span class="s3">=</span><span class="s4">true</span>
+<span class="s2">android.sdk.defaultTargetSdkToCompileSdkIfUnset</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">android.enableAppCompileTimeRClass</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">android.uniquePackageNames</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">android.dependency.useConstraints</span><span class="s3">=</span><span class="s4">true</span>
+<span class="s2">android.r8.strictFullModeForKeepRules</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">android.r8.optimizedResourceShrinking</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">android.builtInKotlin</span><span class="s3">=</span><span class="s4">false</span>
+<span class="s2">org.gradle.daemon.idletimeout</span><span class="s3">=</span><span class="s4">3600000</span>
+<span class="s2">org.gradle.jvmargs</span><span class="s3">=</span><span class="s4">-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError</span>
+</pre>
+</body>
+</html>

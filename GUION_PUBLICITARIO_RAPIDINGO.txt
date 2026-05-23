@@ -1,0 +1,55 @@
+==========================================================
+GUION PUBLICITARIO: DELIVERY RAPIDINGO (Marca Blanca)
+==========================================================
+Duración estimada: 35-40 segundos
+Tono: Innovador, Profesional, Ágil.
+Música sugerida: Corporate Tech / Upbeat Future Bass.
+
+----------------------------------------------------------
+ESCENA 1: EL IMPACTO (00:00 - 00:05)
+----------------------------------------------------------
+VISUAL: Captura "9_Escena_Hero" (Tres teléfonos en perspectiva con el logo del rayo).
+TEXTO EN PANTALLA: "TU PROPIA APP DE DELIVERY"
+LOCUCIÓN (Opcional): "¿Listo para llevar tu negocio al siguiente nivel?"
+
+----------------------------------------------------------
+ESCENA 2: REGISTRO SIN FRICCIONES (00:05 - 00:10)
+----------------------------------------------------------
+VISUAL: Captura "5_Registro" (Pantalla blanca, botón amarillo de Gmail).
+TEXTO EN PANTALLA: "Registro instantáneo con Gmail y WhatsApp"
+ACCIÓN: Se ve el cursor o un dedo virtual completando el nombre "Juan Pérez".
+
+----------------------------------------------------------
+ESCENA 3: EXPERIENCIA DEL CLIENTE (00:10 - 00:18)
+----------------------------------------------------------
+VISUAL: Captura "2_Pedido_Cliente" (Iconos 3D de Comida, Farmacia, Otros).
+TEXTO EN PANTALLA: "Todo lo que tus clientes necesitan, en un solo lugar."
+ACCIÓN: Zoom suave a los iconos 3D. Se muestra el texto: "2 Hamburguesas completas".
+
+----------------------------------------------------------
+ESCENA 4: GESTIÓN INTERNA (00:18 - 00:25)
+----------------------------------------------------------
+VISUAL: Captura "3_Panel_Repartidor" (Dashboard azul con botón "TOMAR PEDIDO").
+TEXTO EN PANTALLA: "Control total para tu equipo de repartidores."
+LOCUCIÓN: "Recibe, cotiza y gestiona pedidos en tiempo real."
+
+----------------------------------------------------------
+ESCENA 5: CONEXIÓN EN VIVO (00:25 - 00:32)
+----------------------------------------------------------
+VISUAL: Captura "8_Chat_En_Vivo" (Burbujas de chat modernas).
+TEXTO EN PANTALLA: "Comunicación directa y seguimiento GPS."
+VISUAL SECUNDARIO: Transición rápida a "4_Tracking_GPS" (Mapa con ruta azul).
+
+----------------------------------------------------------
+ESCENA 6: CIERRE TRIUNFAL (00:32 - 00:40)
+----------------------------------------------------------
+VISUAL: Captura "6_Final_Cliente" (Icono de Check verde: "¡Pedido Entregado!").
+TEXTO EN PANTALLA: "Adaptable a TU LOGO y TUS COLORES."
+VISUAL FINAL: Logo genérico Rapidingo con el texto inferior: "El éxito de tu empresa, nuestra tecnología."
+
+==========================================================
+NOTAS PARA EL EDITOR:
+1. Usar transiciones tipo "Zoom In" entre escenas para dar dinamismo.
+2. Asegurar que los iconos 3D se vean en alta resolución.
+3. El nombre "Rapidingo" es ilustrativo; destacar que es 100% personalizable.
+==========================================================

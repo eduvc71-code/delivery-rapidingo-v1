@@ -1,0 +1,77 @@
+<html>
+<head>
+<title>sw.js</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #bcbec4;}
+.s1 { color: #6aab73;}
+.s2 { color: #7a7e85;}
+.s3 { color: #cf8e6d;}
+.s4 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+sw.js</font>
+</center></td></tr></table>
+<pre><span class="s0">const CACHE_NAME = </span><span class="s1">'rapidingo-v2'</span><span class="s0">; </span><span class="s2">// Incrementamos versión</span>
+<span class="s0">const urlsToCache = [</span>
+  <span class="s1">'./'</span><span class="s0">,</span>
+  <span class="s1">'./index.html'</span><span class="s0">,</span>
+  <span class="s1">'./manifest.json'</span>
+<span class="s0">];</span>
+
+<span class="s0">self.addEventListener(</span><span class="s1">'install'</span><span class="s0">, event =&gt; {</span>
+  <span class="s0">event.waitUntil(</span>
+    <span class="s0">caches.open(CACHE_NAME)</span>
+      <span class="s0">.then(cache =&gt; {</span>
+        <span class="s3">return </span><span class="s0">cache.addAll(urlsToCache);</span>
+      <span class="s0">})</span>
+  <span class="s0">);</span>
+<span class="s0">});</span>
+
+<span class="s0">self.addEventListener(</span><span class="s1">'fetch'</span><span class="s0">, event =&gt; {</span>
+  <span class="s0">event.respondWith(</span>
+    <span class="s0">caches.match(event.request)</span>
+      <span class="s0">.then(response =&gt; {</span>
+        <span class="s3">if </span><span class="s0">(response) {</span>
+          <span class="s3">return </span><span class="s0">response;</span>
+        <span class="s0">}</span>
+        <span class="s3">return </span><span class="s0">fetch(event.request).then(</span>
+          <span class="s0">response =&gt; {</span>
+            <span class="s3">if</span><span class="s0">(!response || response.status !== </span><span class="s4">200 </span><span class="s0">|| response.type !== </span><span class="s1">'basic'</span><span class="s0">) {</span>
+              <span class="s3">return </span><span class="s0">response;</span>
+            <span class="s0">}</span>
+            <span class="s0">const responseToCache = response.clone();</span>
+            <span class="s0">caches.open(CACHE_NAME)</span>
+              <span class="s0">.then(cache =&gt; {</span>
+                <span class="s2">// Cachear solo http(s)</span>
+                <span class="s3">if </span><span class="s0">(event.request.url.startsWith(</span><span class="s1">'http'</span><span class="s0">)) {</span>
+                   <span class="s0">cache.put(event.request, responseToCache);</span>
+                <span class="s0">}</span>
+              <span class="s0">});</span>
+            <span class="s3">return </span><span class="s0">response;</span>
+          <span class="s0">}</span>
+        <span class="s0">);</span>
+      <span class="s0">})</span>
+  <span class="s0">);</span>
+<span class="s0">});</span>
+
+<span class="s0">self.addEventListener(</span><span class="s1">'activate'</span><span class="s0">, event =&gt; {</span>
+  <span class="s0">const cacheWhitelist = [CACHE_NAME];</span>
+  <span class="s0">event.waitUntil(</span>
+    <span class="s0">caches.keys().then(cacheNames =&gt; {</span>
+      <span class="s3">return </span><span class="s0">Promise.all(</span>
+        <span class="s0">cacheNames.map(cacheName =&gt; {</span>
+          <span class="s3">if </span><span class="s0">(cacheWhitelist.indexOf(cacheName) === -</span><span class="s4">1</span><span class="s0">) {</span>
+            <span class="s3">return </span><span class="s0">caches.</span><span class="s3">delete</span><span class="s0">(cacheName);</span>
+          <span class="s0">}</span>
+        <span class="s0">})</span>
+      <span class="s0">);</span>
+    <span class="s0">})</span>
+  <span class="s0">);</span>
+<span class="s0">});</span></pre>
+</body>
+</html>

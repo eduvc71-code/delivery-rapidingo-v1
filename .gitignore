@@ -12,6 +12,24 @@ dist
 dist-ssr
 *.local
 
+# Android
+build/
+.gradle/
+local.properties
+*.iml
+.idea/modules.xml
+.idea/workspace.xml
+.idea/libraries
+.idea/caches
+.idea/assetWizardSettings.xml
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aar
+*.jks
+*.keystore
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +40,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Project specific
+*.hprof
+java_pid*
+pb_data/
+pocketbase.exe
+*.mjs
+dist/
+dist-pwa/
