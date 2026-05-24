@@ -10,6 +10,8 @@
     "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1",
     "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1 -BuildType Release",
     "build:pwas": "npm run build && node scripts/package_pwas.mjs",
+    "deploy:cloudflare:cliente": "npm run build:pwas && npx wrangler pages deploy dist/cliente --project-name rapidingo-cliente",
+    "deploy:cloudflare:delivery": "npm run build:pwas && npx wrangler pages deploy dist/delivery --project-name rapidingo-delivery",
     "preview": "vite preview",
     "predeploy": "npm run build:pwas",
     "deploy": "gh-pages -d dist"
