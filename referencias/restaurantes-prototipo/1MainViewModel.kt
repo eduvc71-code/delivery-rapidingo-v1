@@ -223,7 +223,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "67270686",
             address = "Trinidad Centro",
             schedule = "Lun-Dom: 12:00 - 22:00",
-            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_toby.png",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png",
             logoColor = androidx.compose.ui.graphics.Color(0xFFD32F2F)
         ),
         Restaurant(

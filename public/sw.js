@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rapidingo-v4';
+const CACHE_NAME = 'rapidingo-v12';
 const urlsToCache = [
   './',
   './index.html',
@@ -18,6 +18,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
@@ -56,5 +57,6 @@ self.addEventListener('activate', event => {
         return undefined;
       })
     ))
+      .then(() => self.clients.claim())
   );
 });

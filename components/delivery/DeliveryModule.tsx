@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import MapPlaceholder from '../shared/MapPlaceholder';
 
+type QuoteRow = {
+  restaurant: string;
+  item: string;
+  quantity: number;
+  unitPrice: string;
+};
+
 const hasWhatsAppPhone = (phone?: string) => /\d/.test(phone || '');
 
 const openWhatsAppMessage = (phone: string | undefined, message: string) => {
@@ -18,6 +25,43 @@ const openWhatsAppMessage = (phone: string | undefined, message: string) => {
     return;
   }
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+};
+
+const parseQuoteRows = (description?: string): QuoteRow[] => {
+  const rows: QuoteRow[] = [];
+  let currentRestaurant = 'Pedido';
+
+  (description || '').split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return;
+
+    const restaurantMatch = line.match(/^RESTAURANTE:\s*(.+)$/i);
+    if (restaurantMatch) {
+      currentRestaurant = restaurantMatch[1].trim();
+      return;
+    }
+
+    const itemMatch = line.match(/^-\s*(.+?)\s+x(\d+)\s*$/i);
+    if (itemMatch) {
+      rows.push({
+        restaurant: currentRestaurant,
+        item: itemMatch[1].trim(),
+        quantity: Math.max(1, Number(itemMatch[2] || 1)),
+        unitPrice: ''
+      });
+    }
+  });
+
+  if (rows.length === 0 && description?.trim()) {
+    rows.push({
+      restaurant: 'Pedido',
+      item: description.trim(),
+      quantity: 1,
+      unitPrice: ''
+    });
+  }
+
+  return rows;
 };
 
 interface DeliveryModuleProps {
@@ -37,8 +81,8 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Pricing state
-  const [productCost, setProductCost] = useState('');
   const [serviceCost, setServiceCost] = useState('');
+  const [quoteRows, setQuoteRows] = useState<QuoteRow[]>([]);
   
   const [orderPhoto, setOrderPhoto] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -47,16 +91,21 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const clientDisplayName = activeOrder?.clientName || clientUser?.name || 'Esperando...';
   const clientWhatsAppPhone = activeOrder?.clientPhone || clientUser?.phone;
+  const quotedProductTotal = quoteRows.reduce((sum, row) => {
+    const unitPrice = parseFloat(row.unitPrice);
+    return sum + (isNaN(unitPrice) ? 0 : unitPrice * row.quantity);
+  }, 0);
+  const quotedServiceCost = parseFloat(serviceCost);
+  const quotedGrandTotal = quotedProductTotal + (isNaN(quotedServiceCost) ? 0 : quotedServiceCost);
 
   useEffect(() => {
-    setProductCost('');
     setServiceCost('');
+    setQuoteRows(parseQuoteRows(activeOrder?.description));
     setOrderPhoto(null);
-  }, [activeOrder?.id]);
+  }, [activeOrder?.id, activeOrder?.description]);
 
   useEffect(() => {
     if (activeOrder?.status !== OrderStatus.PENDING_PRICE) {
-      setProductCost('');
       setServiceCost('');
     }
   }, [activeOrder?.status]);
@@ -143,23 +192,29 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
 
   const handleSetPrice = () => {
     if (!activeOrder) return;
-    const pCost = parseFloat(productCost);
     const sCost = parseFloat(serviceCost);
-    if (isNaN(pCost) || isNaN(sCost) || pCost < 0 || sCost < 0) {
+    const productTotal = quoteRows.reduce((sum, row) => {
+      const unitPrice = parseFloat(row.unitPrice);
+      return sum + (isNaN(unitPrice) ? 0 : unitPrice * row.quantity);
+    }, 0);
+    const hasInvalidProduct = quoteRows.some((row) => {
+      const unitPrice = parseFloat(row.unitPrice);
+      return isNaN(unitPrice) || unitPrice < 0;
+    });
+    if (hasInvalidProduct || isNaN(sCost) || sCost < 0) {
       alert("Por favor ingrese costos válidos.");
       return;
     }
-    const total = pCost + sCost;
+    const total = productTotal + sCost;
     updateOrder({
       ...activeOrder,
-      productPrice: pCost,
+      productPrice: productTotal,
       servicePrice: sCost,
       totalPrice: total,
       status: OrderStatus.WAITING_CONFIRM,
       photos: orderPhoto ? [orderPhoto] : activeOrder.photos
     });
     setOrderPhoto(null);
-    setProductCost('');
     setServiceCost('');
   };
 
@@ -328,16 +383,55 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
               <div className="space-y-3 pt-2">
                 {activeOrder.status === OrderStatus.PENDING_PRICE && (
                   <div className="bg-white p-5 rounded-[24px] border border-orange-100 shadow-[0_12px_26px_rgba(211,47,47,0.12)] space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                    <p className="text-xs font-black text-red-600 uppercase text-center">Enviar presupuesto</p>
+                    <p className="text-xs font-black text-red-600 uppercase text-center">Cotizar pedido</p>
+                    <div className="overflow-hidden rounded-2xl border border-orange-100">
+                      <div className="grid grid-cols-[1.3fr_42px_76px_76px] bg-orange-50 text-[10px] font-black text-[#565656] uppercase">
+                        <div className="p-2">Menu</div>
+                        <div className="p-2 text-center">Cant.</div>
+                        <div className="p-2 text-center">Unit.</div>
+                        <div className="p-2 text-right">Total</div>
+                      </div>
+                      <div className="divide-y divide-orange-100">
+                        {quoteRows.map((row, index) => {
+                          const unitPrice = parseFloat(row.unitPrice);
+                          const lineTotal = isNaN(unitPrice) ? 0 : unitPrice * row.quantity;
+                          return (
+                            <div key={`${row.restaurant}-${row.item}-${index}`} className="grid grid-cols-[1.3fr_42px_76px_76px] items-center bg-white">
+                              <div className="p-2 min-w-0">
+                                <p className="text-[11px] font-black text-red-600 truncate">{row.restaurant}</p>
+                                <p className="text-xs font-black text-[#161616] leading-tight">{row.item}</p>
+                              </div>
+                              <div className="p-2 text-center text-sm font-black text-[#161616]">{row.quantity}</div>
+                              <div className="p-1">
+                                <input
+                                  type="number"
+                                  value={row.unitPrice}
+                                  onChange={(event) => setQuoteRows((current) => current.map((quoteRow, quoteIndex) => (
+                                    quoteIndex === index ? { ...quoteRow, unitPrice: event.target.value } : quoteRow
+                                  )))}
+                                  placeholder="0"
+                                  className="w-full rounded-lg bg-orange-50 px-2 py-2 text-center text-sm font-black outline-none focus:ring-2 focus:ring-orange-300"
+                                />
+                              </div>
+                              <div className="p-2 text-right text-sm font-black text-green-700">Bs. {lineTotal.toFixed(2)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <span className="text-xs font-black text-[#565656] ml-1 uppercase tracking-tighter">Productos</span>
-                        <input type="number" placeholder="0.00" value={productCost} onChange={(e) => setProductCost(e.target.value)} className="w-full bg-orange-50 p-4 rounded-xl font-black text-center text-lg text-[#161616] border-2 border-transparent focus:border-orange-500 outline-none transition-all" />
+                        <span className="text-xs font-black text-[#565656] ml-1 uppercase tracking-tighter">Total productos</span>
+                        <div className="w-full bg-green-50 p-4 rounded-xl font-black text-center text-lg text-green-900 border-2 border-green-100">Bs. {quotedProductTotal.toFixed(2)}</div>
                       </div>
                       <div className="space-y-1">
                         <span className="text-xs font-black text-[#565656] ml-1 uppercase tracking-tighter">Tarifa</span>
                         <input type="number" placeholder="0.00" value={serviceCost} onChange={(e) => setServiceCost(e.target.value)} className="w-full bg-orange-50 p-4 rounded-xl font-black text-center text-lg text-[#161616] border-2 border-transparent focus:border-orange-500 outline-none transition-all" />
                       </div>
+                    </div>
+                    <div className="rounded-2xl bg-[#161616] text-white p-3 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase">Total a cliente</span>
+                      <span className="text-2xl font-black">Bs. {quotedGrandTotal.toFixed(2)}</span>
                     </div>
                     <button onClick={handleSetPrice} className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black shadow-lg transition-all active:scale-95">ENVIAR COTIZACIÓN</button>
                   </div>

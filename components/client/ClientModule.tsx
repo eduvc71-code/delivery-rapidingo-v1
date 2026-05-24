@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { OrderType, OrderStatus, Order, ChatMessage } from '../../types';
 import { ORDER_TYPES } from '../../constants';
-import { checkSpellingAndClarify } from '../../services/geminiService';
 import MapPlaceholder from '../shared/MapPlaceholder';
 import { 
-  AlertCircle, Check, Loader2, Send, Image as ImageIcon, 
+  Send, 
   LogOut, ShoppingBag, MapPin, MessageCircle, Clock, 
-  User as UserIcon, Home, ChevronRight, X, Power, PhoneCall, Bike, Truck
+  User as UserIcon, Home, ChevronRight, X, PhoneCall, Bike, Truck,
+  Star, Plus, Minus, Trash2, ReceiptText, Store, Maximize2, ZoomIn, ZoomOut
 } from 'lucide-react';
 
 const CLIENT_CATEGORY_CONFIG: Record<OrderType, { img: string, bg: string, color: string }> = {
@@ -16,6 +16,227 @@ const CLIENT_CATEGORY_CONFIG: Record<OrderType, { img: string, bg: string, color
   [OrderType.OTHER]: { img: 'assets/client/other.png', bg: 'bg-[#F3E5F5]', color: 'text-[#7B1FA2]' },
   [OrderType.SUPERMARKET]: { img: 'assets/client/other.png', bg: 'bg-green-50', color: 'text-green-600' } // Fallback
 };
+
+type RestaurantPartner = {
+  id: string;
+  name: string;
+  category: string;
+  rating: number;
+  deliveryTime: string;
+  deliveryFee: number;
+  minOrder: number;
+  phone: string;
+  address: string;
+  schedule: string;
+  logoUrl: string;
+  color: string;
+};
+
+type TempRestaurantItem = {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  productName: string;
+  quantity: number;
+  menuImageUrl?: string;
+  restaurantPhone?: string;
+  restaurantAddress?: string;
+  restaurantSchedule?: string;
+  source?: 'menu' | 'manual';
+};
+
+type MenuDraftRow = {
+  id: string;
+  productName: string;
+  quantity: number;
+};
+
+const createMenuDraftRow = (): MenuDraftRow => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  productName: '',
+  quantity: 1
+});
+
+const RESTAURANT_PARTNERS: RestaurantPartner[] = [
+  {
+    id: 'wings_drinks',
+    name: 'Wings & Drinks',
+    category: 'COMIDA RAPIDA',
+    rating: 4.6,
+    deliveryTime: '25-35 min',
+    deliveryFee: 5,
+    minOrder: 20,
+    phone: '74721716',
+    address: 'Trinidad Centro',
+    schedule: 'Lun-Dom: 12:00 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/wings_drinks.png',
+    color: '#ff5722'
+  },
+  {
+    id: 'el_brete',
+    name: 'El Brete Churrasqueria',
+    category: 'PARRILLA',
+    rating: 4.8,
+    deliveryTime: '35-45 min',
+    deliveryFee: 7,
+    minOrder: 50,
+    phone: '69376937',
+    address: 'C/ Macheteros #284',
+    schedule: 'Lun-Dom: 12:00 - 23:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_brete.png',
+    color: '#e91e63'
+  },
+  {
+    id: 'la_toscana_1',
+    name: 'La Toscana Centro',
+    category: 'RESTAURANTE',
+    rating: 4.7,
+    deliveryTime: '30-40 min',
+    deliveryFee: 6,
+    minOrder: 20,
+    phone: '73939626',
+    address: 'Calle La Paz esq. 18 de Noviembre',
+    schedule: 'Lun-Dom: 11:30 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana.png',
+    color: '#9c27b0'
+  },
+  {
+    id: 'la_toscana_2',
+    name: 'La Toscana - Tablitas',
+    category: 'PARRILLA',
+    rating: 4.7,
+    deliveryTime: '30-40 min',
+    deliveryFee: 6,
+    minOrder: 55,
+    phone: '73939626',
+    address: 'Calle La Paz esq. 18 de Noviembre',
+    schedule: 'Lun-Dom: 11:30 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana1.png',
+    color: '#673ab7'
+  },
+  {
+    id: 'la_plazuela',
+    name: 'La Plazuela J&C',
+    category: 'RESTAURANTE',
+    rating: 4.5,
+    deliveryTime: '30-40 min',
+    deliveryFee: 6,
+    minOrder: 18,
+    phone: '73900041',
+    address: 'Calle 9 de Abril, diagonal parroquia Fatima',
+    schedule: 'Lun-Dom: 12:00 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_plazuela.png',
+    color: '#795548'
+  },
+  {
+    id: 'la_coqueta',
+    name: 'La Coqueta',
+    category: 'HAMBURGUESAS',
+    rating: 4.5,
+    deliveryTime: '25-35 min',
+    deliveryFee: 5,
+    minOrder: 15,
+    phone: '72845195',
+    address: 'Calle Sucre esquina 9 de Abril',
+    schedule: 'Mar-Dom: 19:00 - 23:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_coqueta.png',
+    color: '#e91e63'
+  },
+  {
+    id: 'mr_grill',
+    name: 'Mr. Grill',
+    category: 'HAMBURGUESAS',
+    rating: 4.8,
+    deliveryTime: '20-30 min',
+    deliveryFee: 0,
+    minOrder: 20,
+    phone: '77848655',
+    address: 'Calle Santa Cruz esq. Av. del Mar',
+    schedule: 'Lun-Dom: 12:00 - 23:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/mr_grill.png',
+    color: '#ff5722'
+  },
+  {
+    id: 'el_benianito',
+    name: 'Restaurante El Benianito',
+    category: 'RESTAURANTE',
+    rating: 4.3,
+    deliveryTime: '30-40 min',
+    deliveryFee: 7,
+    minOrder: 22,
+    phone: '72815881',
+    address: 'Av. del Mar frente a la Plaza Ganadera',
+    schedule: '19:00 - 12:30',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_benianito.png',
+    color: '#3f51b5'
+  },
+  {
+    id: 'toby',
+    name: 'Toby - Cuarto de Libra',
+    category: 'HAMBURGUESAS',
+    rating: 4.4,
+    deliveryTime: '20-30 min',
+    deliveryFee: 5,
+    minOrder: 27,
+    phone: '67270686',
+    address: 'Trinidad Centro',
+    schedule: 'Lun-Dom: 12:00 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png',
+    color: '#d32f2f'
+  },
+  {
+    id: 'la_toscana_rapido',
+    name: 'La Toscana - Rapido',
+    category: 'COMIDA RAPIDA',
+    rating: 4.6,
+    deliveryTime: '25-35 min',
+    deliveryFee: 6,
+    minOrder: 20,
+    phone: '73939626',
+    address: 'Calle La Paz esq. 18 de Noviembre',
+    schedule: 'Lun-Dom: 11:30 - 22:00',
+    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana2.png',
+    color: '#ba68c8'
+  }
+];
+
+const RESTAURANT_FILTERS = ['TODOS', 'HAMBURGUESAS', 'PARRILLA', 'COMIDA RAPIDA', 'RESTAURANTE'];
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const getDeviceRestaurantZoom = () => {
+  if (typeof window === 'undefined') return 1;
+  return 1;
+};
+
+const buildRestaurantOrderDescription = (items: TempRestaurantItem[]) => {
+  const groups = items.reduce<Record<string, TempRestaurantItem[]>>((acc, item) => {
+    acc[item.restaurantName] = [...(acc[item.restaurantName] || []), item];
+    return acc;
+  }, {});
+
+  return [
+    'PEDIDO DE COMIDA PARA COTIZAR',
+    ...Object.entries(groups)
+    .map(([restaurantName, restaurantItems]) => {
+      const restaurantInfo = restaurantItems[0];
+      const products = restaurantItems
+        .map((item) => `- ${item.productName} x${item.quantity}`)
+        .join('\n');
+      return [
+        `RESTAURANTE: ${restaurantName}`,
+        products
+      ].filter(Boolean).join('\n');
+    }),
+    `TOTAL PLATOS: ${items.reduce((sum, item) => sum + item.quantity, 0)}`,
+    'Cliente espera cotizacion del delivery.'
+  ].join('\n\n');
+};
+
+const groupRestaurantItems = (items: TempRestaurantItem[]) => items.reduce<Record<string, TempRestaurantItem[]>>((acc, item) => {
+  acc[item.restaurantName] = [...(acc[item.restaurantName] || []), item];
+  return acc;
+}, {});
 
 const hasWhatsAppPhone = (phone?: string) => /\d/.test(phone || '');
 
@@ -148,6 +369,227 @@ const DestinationPickerModal: React.FC<{
   );
 };
 
+const RestaurantOrderBuilder: React.FC<{
+  items: TempRestaurantItem[];
+  onAddItem: (restaurant: RestaurantPartner, productName: string, quantity: number) => void;
+  onUpdateQuantity: (itemId: string, quantity: number) => void;
+  onRemoveItem: (itemId: string) => void;
+  onOpenRestaurantMenu: (restaurant: RestaurantPartner) => void;
+}> = ({ items, onAddItem, onUpdateQuantity, onRemoveItem, onOpenRestaurantMenu }) => {
+  const [activeFilter, setActiveFilter] = useState('TODOS');
+  const [activeRestaurantId, setActiveRestaurantId] = useState(RESTAURANT_PARTNERS[0]?.id || '');
+  const [productName, setProductName] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const lastTapRef = useRef(0);
+
+  const filteredRestaurants = activeFilter === 'TODOS'
+    ? RESTAURANT_PARTNERS
+    : RESTAURANT_PARTNERS.filter((restaurant) => restaurant.category === activeFilter);
+  const activeRestaurant =
+    RESTAURANT_PARTNERS.find((restaurant) => restaurant.id === activeRestaurantId) ||
+    filteredRestaurants[0] ||
+    RESTAURANT_PARTNERS[0];
+  const activeRestaurantItems = activeRestaurant
+    ? items.filter((item) => item.restaurantId === activeRestaurant.id)
+    : [];
+  const groupedItems = groupRestaurantItems(items);
+
+  const addCurrentItem = () => {
+    if (!activeRestaurant || !productName.trim()) return;
+    onAddItem(activeRestaurant, productName, quantity);
+    setProductName('');
+    setQuantity(1);
+  };
+
+  const handleRestaurantPointerUp = (restaurant: RestaurantPartner, event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'touch') return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 320) {
+      setActiveRestaurantId(restaurant.id);
+      onOpenRestaurantMenu(restaurant);
+      lastTapRef.current = 0;
+      return;
+    }
+    lastTapRef.current = now;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-[22px] border border-orange-100 shadow-[0_8px_18px_rgba(211,47,47,0.08)] p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wider text-[#565656] font-black">Restaurantes asociados</p>
+            <h3 className="text-lg font-black text-[#161616]">Elige donde comprar</h3>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+            <Store size={20} />
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {RESTAURANT_FILTERS.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => {
+                setActiveFilter(filter);
+                const firstMatch = filter === 'TODOS'
+                  ? RESTAURANT_PARTNERS[0]
+                  : RESTAURANT_PARTNERS.find((restaurant) => restaurant.category === filter);
+                if (firstMatch) setActiveRestaurantId(firstMatch.id);
+              }}
+              className={`shrink-0 px-3 py-2 rounded-full text-xs font-black border transition-colors ${
+                activeFilter === filter
+                  ? 'bg-red-600 text-white border-red-600'
+                  : 'bg-white text-[#565656] border-orange-100'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+        {filteredRestaurants.map((restaurant) => {
+          const selected = restaurant.id === activeRestaurant?.id;
+          return (
+            <button
+              key={restaurant.id}
+              type="button"
+              onClick={() => setActiveRestaurantId(restaurant.id)}
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                setActiveRestaurantId(restaurant.id);
+                onOpenRestaurantMenu(restaurant);
+              }}
+              onPointerUp={(event) => handleRestaurantPointerUp(restaurant, event)}
+              className={`shrink-0 w-72 overflow-hidden rounded-[22px] border bg-white text-left shadow-[0_8px_18px_rgba(211,47,47,0.10)] active:scale-[0.98] transition-all ${
+                selected ? 'border-red-500 ring-2 ring-red-100' : 'border-orange-100'
+              }`}
+            >
+              <div
+                className="relative h-32 bg-gray-100"
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setActiveRestaurantId(restaurant.id);
+                  onOpenRestaurantMenu(restaurant);
+                }}
+              >
+                <img src={restaurant.logoUrl} alt="" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute right-3 top-3 h-8 w-8 rounded-full bg-black/45 text-white flex items-center justify-center pointer-events-none">
+                  <Maximize2 size={15} />
+                </div>
+                <div className="absolute left-3 right-3 bottom-3">
+                  <p className="text-white text-lg font-black leading-tight line-clamp-2">{restaurant.name}</p>
+                  <div className="mt-1 flex items-center gap-2 text-white/95 text-xs font-black">
+                    <span className="inline-flex items-center gap-1"><Star size={13} fill="currentColor" /> {restaurant.rating}</span>
+                    <span>{restaurant.deliveryTime}</span>
+                    <span>Bs. {restaurant.deliveryFee}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-black px-2 py-1 rounded-full bg-orange-50 text-orange-700">{restaurant.category}</span>
+                  <span className="text-[11px] font-black text-[#565656]">Min. Bs. {restaurant.minOrder}</span>
+                </div>
+                <p className="text-xs text-[#565656] font-bold leading-tight line-clamp-2">{restaurant.address}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeRestaurant && activeRestaurantItems.length > 0 && (
+        <div className="bg-white rounded-[22px] border border-orange-100 shadow-[0_8px_18px_rgba(211,47,47,0.08)] p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: activeRestaurant.color }}>
+              <ShoppingBag size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wider text-[#565656] font-black">Pedido reservado en</p>
+              <h3 className="text-base font-black text-[#161616] truncate">{activeRestaurant.name}</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <input
+              value={productName}
+              onChange={(event) => setProductName(event.target.value.toUpperCase())}
+              onKeyDown={(event) => event.key === 'Enter' && addCurrentItem()}
+              placeholder="DETALLE EXTRA"
+              className="min-w-0 rounded-2xl border-2 border-orange-100 bg-orange-50/60 px-4 py-3 font-black text-sm outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+            />
+            <div className="flex items-center rounded-2xl border-2 border-orange-100 bg-white overflow-hidden">
+              <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 text-[#565656]">
+                <Minus size={16} />
+              </button>
+              <span className="w-8 text-center font-black text-[#161616]">{quantity}</span>
+              <button type="button" onClick={() => setQuantity(quantity + 1)} className="p-3 text-[#565656]">
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={addCurrentItem}
+            disabled={!productName.trim()}
+            className="w-full bg-red-600 text-white py-3 rounded-2xl font-black disabled:bg-red-100 disabled:text-red-900 disabled:opacity-100 flex items-center justify-center gap-2"
+          >
+            <Plus size={18} /> Agregar detalle
+          </button>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div className="bg-white rounded-[22px] border border-green-100 shadow-[0_8px_18px_rgba(46,125,50,0.08)] p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-green-700 font-black">Resumen</p>
+              <h3 className="text-lg font-black text-[#161616]">{items.reduce((sum, item) => sum + item.quantity, 0)} platos</h3>
+            </div>
+            <ReceiptText className="text-green-700" size={24} />
+          </div>
+
+          <div className="space-y-3">
+            {Object.entries(groupedItems).map(([restaurantName, restaurantItems]) => {
+              return (
+              <div key={restaurantName} className="rounded-2xl bg-green-50/70 border border-green-100 p-3 space-y-2">
+                <div>
+                  <p className="font-black text-sm text-green-900">{restaurantName}</p>
+                </div>
+                <div className="space-y-2">
+                  {restaurantItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 bg-white rounded-xl p-2 border border-green-100">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-[#161616] truncate">{item.productName}</p>
+                        <p className="text-xs font-bold text-[#565656]">Cantidad: {item.quantity} plato{item.quantity === 1 ? '' : 's'}</p>
+                      </div>
+                      <button type="button" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} className="p-2 rounded-lg bg-gray-100 text-gray-700">
+                        <Minus size={14} />
+                      </button>
+                      <button type="button" onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} className="p-2 rounded-lg bg-gray-100 text-gray-700">
+                        <Plus size={14} />
+                      </button>
+                      <button type="button" onClick={() => onRemoveItem(item.id)} className="p-2 rounded-lg bg-red-50 text-red-600">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );})}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface ClientModuleProps {
     onClose: () => void;
 }
@@ -158,6 +600,11 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   const [view, setView] = useState<'MENU' | 'FORM' | 'TRACKING'>('MENU');
   const [selectedType, setSelectedType] = useState<OrderType | null>(null);
   const [orderText, setOrderText] = useState('');
+  const [restaurantItems, setRestaurantItems] = useState<TempRestaurantItem[]>([]);
+  const [expandedRestaurant, setExpandedRestaurant] = useState<RestaurantPartner | null>(null);
+  const [menuZoom, setMenuZoom] = useState(1);
+  const [menuZoomByRestaurant, setMenuZoomByRestaurant] = useState<Record<string, number>>({});
+  const [menuDraftRows, setMenuDraftRows] = useState<MenuDraftRow[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showTypingWarning, setShowTypingWarning] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -171,6 +618,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const lastMenuPinchDistanceRef = useRef<number | null>(null);
   
   const [message, setMessage] = useState<string | null>(null);
 
@@ -205,6 +653,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
       setSendToOtherLocation(false);
       setIsDestinationConfirmed(false);
       setDestinationPoint(null);
+      setRestaurantItems([]);
     }
   }, [activeOrder]);
 
@@ -227,67 +676,134 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
     }
   }, [activeOrder?.id, activeOrder?.status]);
 
+  const addRestaurantItem = (restaurant: RestaurantPartner, productName: string, quantity: number) => {
+    const normalizedProductName = productName.trim().toUpperCase();
+    if (!normalizedProductName || quantity < 1) return;
+    setRestaurantItems((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        productName: normalizedProductName,
+        quantity,
+        restaurantPhone: restaurant.phone,
+        restaurantAddress: restaurant.address,
+        restaurantSchedule: restaurant.schedule,
+        source: 'manual'
+      }
+    ]);
+  };
+
+  const updateRestaurantItemQuantity = (itemId: string, quantity: number) => {
+    if (quantity < 1) {
+      setRestaurantItems((current) => current.filter((item) => item.id !== itemId));
+      return;
+    }
+    setRestaurantItems((current) => current.map((item) => (
+      item.id === itemId ? { ...item, quantity } : item
+    )));
+  };
+
+  const removeRestaurantItem = (itemId: string) => {
+    setRestaurantItems((current) => current.filter((item) => item.id !== itemId));
+  };
+
+  const openRestaurantMenu = (restaurant: RestaurantPartner) => {
+    const currentMenuItems = restaurantItems.filter((item) => (
+      item.restaurantId === restaurant.id && item.source === 'menu'
+    ));
+    setExpandedRestaurant(restaurant);
+    setMenuZoom(menuZoomByRestaurant[restaurant.id] || getDeviceRestaurantZoom());
+    setMenuDraftRows(currentMenuItems.length > 0
+      ? currentMenuItems.map((item) => ({
+        id: item.id,
+        productName: item.productName,
+        quantity: item.quantity
+      }))
+      : [createMenuDraftRow()]
+    );
+    lastMenuPinchDistanceRef.current = null;
+  };
+
+  const updateMenuZoom = (nextZoom: number | ((currentZoom: number) => number)) => {
+    setMenuZoom((currentZoom) => clamp(
+      typeof nextZoom === 'function' ? nextZoom(currentZoom) : nextZoom,
+      1,
+      3
+    ));
+  };
+
+  useEffect(() => {
+    if (!expandedRestaurant) return;
+    setMenuZoomByRestaurant((current) => ({
+      ...current,
+      [expandedRestaurant.id]: menuZoom
+    }));
+  }, [expandedRestaurant?.id, menuZoom]);
+
+  const reserveExpandedRestaurantMenu = () => {
+    if (!expandedRestaurant) return;
+    const selectedItems = menuDraftRows
+      .map((item) => ({
+        ...item,
+        productName: item.productName.trim().toUpperCase(),
+        quantity: Math.max(1, item.quantity)
+      }))
+      .filter((item) => item.productName.length > 1);
+
+    if (selectedItems.length > 0) {
+      setRestaurantItems((current) => [
+        ...current,
+        ...selectedItems.map((item) => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          restaurantId: expandedRestaurant.id,
+          restaurantName: expandedRestaurant.name,
+          productName: item.productName,
+          quantity: item.quantity,
+          menuImageUrl: expandedRestaurant.logoUrl,
+          restaurantPhone: expandedRestaurant.phone,
+          restaurantAddress: expandedRestaurant.address,
+          restaurantSchedule: expandedRestaurant.schedule,
+          source: 'menu' as const
+        }))
+      ]);
+      setExpandedRestaurant(null);
+      return;
+    }
+  };
+
+  const handleExpandedRestaurantTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 2) return;
+    event.preventDefault();
+    const [firstTouch, secondTouch] = [event.touches[0], event.touches[1]];
+    const distance = Math.hypot(
+      firstTouch.clientX - secondTouch.clientX,
+      firstTouch.clientY - secondTouch.clientY
+    );
+    if (lastMenuPinchDistanceRef.current) {
+      updateMenuZoom((currentZoom) => currentZoom + (distance - lastMenuPinchDistanceRef.current!) / 180);
+    }
+    lastMenuPinchDistanceRef.current = distance;
+  };
+
+  const resetExpandedRestaurantTouch = () => {
+    lastMenuPinchDistanceRef.current = null;
+  };
+
   const handleOrderSubmit = () => {
     if (!clientUser || !selectedType) return;
-    const normalizedOrderText = orderText.trim().toUpperCase();
+    const normalizedOrderText = selectedType === OrderType.RESTAURANT
+      ? buildRestaurantOrderDescription(restaurantItems)
+      : orderText.trim().toUpperCase();
+    if (!normalizedOrderText.trim()) return;
     if (!isDestinationConfirmed || !destinationPoint) {
       openDestinationPicker(sendToOtherLocation);
       return;
     }
 
-    // Attempt to get real GPS location
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const newOrder: Order = {
-          id: Date.now().toString(),
-          clientId: clientUser.id,
-          type: selectedType,
-          description: normalizedOrderText,
-          location: {
-            lat: destinationPoint.lat,
-            lng: destinationPoint.lng,
-            address: destinationPoint.address || 'Destino de entrega'
-          },
-          clientLocation: { lat: position.coords.latitude, lng: position.coords.longitude },
-          destinationLocation: {
-            lat: destinationPoint.lat,
-            lng: destinationPoint.lng,
-            address: destinationPoint.address || 'Destino de entrega'
-          },
-          status: OrderStatus.PENDING_PRICE,
-          createdAt: Date.now(),
-          chatHistory: [],
-          photos: []
-        };
-        createOrder(newOrder);
-      }, (error) => {
-        console.warn("GPS error, using mock:", error);
-        // Fallback to mock
-        const newOrder: Order = {
-          id: Date.now().toString(),
-          clientId: clientUser.id,
-          type: selectedType,
-          description: normalizedOrderText,
-          location: {
-            lat: destinationPoint.lat,
-            lng: destinationPoint.lng,
-            address: destinationPoint.address || 'Destino de entrega'
-          },
-          clientLocation: { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng },
-          destinationLocation: {
-            lat: destinationPoint.lat,
-            lng: destinationPoint.lng,
-            address: destinationPoint.address || 'Destino de entrega'
-          },
-          status: OrderStatus.PENDING_PRICE,
-          createdAt: Date.now(),
-          chatHistory: [],
-          photos: []
-        };
-        createOrder(newOrder);
-      });
-    } else {
-      const newOrder: Order = {
+    const submitOrderRecord = async (clientLocation: { lat: number; lng: number }) => {
+      await createOrder({
         id: Date.now().toString(),
         clientId: clientUser.id,
         type: selectedType,
@@ -297,7 +813,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
           lng: destinationPoint.lng,
           address: destinationPoint.address || 'Destino de entrega'
         },
-        clientLocation: { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng },
+        clientLocation,
         destinationLocation: {
           lat: destinationPoint.lat,
           lng: destinationPoint.lng,
@@ -307,8 +823,20 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
         createdAt: Date.now(),
         chatHistory: [],
         photos: []
-      };
-      createOrder(newOrder);
+      });
+      setRestaurantItems([]);
+    };
+
+    // Attempt to get real GPS location
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        void submitOrderRecord({ lat: position.coords.latitude, lng: position.coords.longitude });
+      }, (error) => {
+        console.warn("GPS error, using mock:", error);
+        void submitOrderRecord({ lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng });
+      });
+    } else {
+      void submitOrderRecord({ lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng });
     }
   };
 
@@ -327,6 +855,9 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   if (!clientUser) return null;
 
   const selectedTypeLabel = ORDER_TYPES.find((type) => type.type === selectedType)?.label || selectedType;
+  const canSubmitOrder = selectedType === OrderType.RESTAURANT
+    ? restaurantItems.length > 0
+    : !!selectedType && orderText.trim().length >= 3;
   const deliveryDisplayName = activeOrder?.deliveryName || assignedDelivery?.name;
   const deliveryStatusLabel = deliveryDisplayName
     ? deliveryDisplayName
@@ -413,6 +944,147 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
             setShowDestinationPicker(false);
           }}
         />
+      )}
+
+      {expandedRestaurant && (
+        <div className="absolute inset-0 z-[100] bg-[#111] flex flex-col overflow-hidden">
+          <div className="shrink-0 bg-[#111]/95 text-white px-3 py-3 flex items-center gap-2 border-b border-white/10">
+            <button
+              type="button"
+              onClick={() => setExpandedRestaurant(null)}
+              title="Cerrar"
+              className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center active:scale-95"
+            >
+              <X size={20} />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black truncate">{expandedRestaurant.name}</p>
+              <p className="text-[11px] font-bold text-white/70 truncate">{expandedRestaurant.schedule}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updateMenuZoom(menuZoom - 0.2)}
+              title="Reducir zoom"
+              className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center active:scale-95"
+            >
+              <ZoomOut size={19} />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateMenuZoom(menuZoom + 0.2)}
+              title="Aumentar zoom"
+              className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center active:scale-95"
+            >
+              <ZoomIn size={19} />
+            </button>
+          </div>
+
+          <div
+            className="min-h-0 flex-1 overflow-auto overscroll-contain bg-[#111]"
+            onWheel={(event) => {
+              if (!event.ctrlKey && Math.abs(event.deltaY) < 12) return;
+              updateMenuZoom((currentZoom) => currentZoom + (event.deltaY < 0 ? 0.12 : -0.12));
+            }}
+            onTouchMove={handleExpandedRestaurantTouchMove}
+            onTouchEnd={resetExpandedRestaurantTouch}
+            onTouchCancel={resetExpandedRestaurantTouch}
+          >
+            <div className="min-h-full w-full flex items-center justify-center p-2">
+              <img
+                src={expandedRestaurant.logoUrl}
+                alt={expandedRestaurant.name}
+                onDoubleClick={() => updateMenuZoom(menuZoom > 1.35 ? getDeviceRestaurantZoom() : 2)}
+                className="block select-none object-contain"
+                draggable={false}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  maxHeight: '100%',
+                  transform: `scale(${menuZoom})`,
+                  transformOrigin: 'center top',
+                  maxWidth: 'none',
+                  touchAction: 'none'
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="shrink-0 max-h-[42%] bg-white shadow-2xl border-t border-orange-100 p-3 space-y-3 flex flex-col">
+            <div className="shrink-0">
+              <p className="text-xs font-black text-red-600 uppercase tracking-wider">Reserva de menu</p>
+              <p className="text-sm font-black text-[#161616] truncate">{expandedRestaurant.name}</p>
+            </div>
+
+            <div className="min-h-0 overflow-y-auto space-y-2 pr-1">
+              {menuDraftRows.map((row, rowIndex) => (
+                  <div key={row.id} className="rounded-2xl border border-orange-100 bg-white p-2 space-y-2">
+                    <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                      <input
+                        value={row.productName}
+                        onChange={(event) => {
+                          const value = event.target.value.toUpperCase();
+                          setMenuDraftRows((current) => current.map((draft) => (
+                            draft.id === row.id
+                              ? { ...draft, productName: value }
+                              : draft
+                          )));
+                        }}
+                        placeholder={`PLATO ${rowIndex + 1}`}
+                        className="min-w-0 rounded-xl border-2 border-orange-100 bg-orange-50/60 px-3 py-2.5 font-black text-sm outline-none focus:border-orange-500"
+                      />
+                      <div className="flex items-center rounded-xl border border-orange-100 bg-orange-50 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setMenuDraftRows((current) => current.map((draft) => (
+                            draft.id === row.id ? { ...draft, quantity: Math.max(1, draft.quantity - 1) } : draft
+                          )))}
+                          className="p-2 text-[#565656]"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="w-7 text-center text-sm font-black text-[#161616]">{row.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => setMenuDraftRows((current) => current.map((draft) => (
+                            draft.id === row.id ? { ...draft, quantity: draft.quantity + 1 } : draft
+                          )))}
+                          className="p-2 text-[#565656]"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    {menuDraftRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setMenuDraftRows((current) => current.filter((draft) => draft.id !== row.id))}
+                        className="text-xs font-black text-red-600 px-1"
+                      >
+                        Quitar fila
+                      </button>
+                    )}
+                  </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setMenuDraftRows((current) => [...current, createMenuDraftRow()])}
+                className="w-full rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/60 py-2.5 text-sm font-black text-orange-700 flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Agregar otro plato
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={reserveExpandedRestaurantMenu}
+              disabled={menuDraftRows.every((row) => row.productName.trim().length < 2)}
+              className="w-full bg-red-600 text-white py-3.5 rounded-2xl font-black shadow-lg shadow-red-200 disabled:bg-red-100 disabled:text-red-900 disabled:shadow-none disabled:opacity-100 flex items-center justify-center gap-2"
+            >
+              <ReceiptText size={18} /> Reservar pedido
+            </button>
+          </div>
+        </div>
       )}
 
       {!clientUser.phone && (
@@ -507,7 +1179,13 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                     return (
                       <button
                         key={t.type}
-                        onClick={() => { setSelectedType(t.type as OrderType); setOrderText(''); setView('FORM'); }}
+                        onClick={() => {
+                          const nextType = t.type as OrderType;
+                          setSelectedType(nextType);
+                          setOrderText('');
+                          if (nextType !== OrderType.RESTAURANT) setRestaurantItems([]);
+                          setView('FORM');
+                        }}
                         className="group flex flex-col overflow-hidden rounded-[22px] border border-orange-100 bg-white shadow-[0_8px_18px_rgba(211,47,47,0.10)] active:scale-95 transition-all hover:shadow-xl"
                       >
                         <div className={`relative h-24 ${config.bg} flex items-center justify-center overflow-hidden p-2`}>
@@ -553,16 +1231,26 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                   </div>
                 )}
 
-                <textarea
-                  className="w-full h-40 p-4 border-2 border-orange-100 rounded-[22px] bg-white text-lg text-[#161616] font-black uppercase shadow-[0_8px_18px_rgba(211,47,47,0.08)] focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all placeholder:text-[#7a7a7a]"
-                  placeholder="Ej: 2 Hamburguesas completas con papas"
-                  value={orderText}
-                  onChange={(e) => setOrderText(e.target.value)}
-                  lang="es"
-                  inputMode="text"
-                  spellCheck
-                  autoCapitalize="sentences"
-                />
+                {selectedType === OrderType.RESTAURANT ? (
+                  <RestaurantOrderBuilder
+                    items={restaurantItems}
+                    onAddItem={addRestaurantItem}
+                    onUpdateQuantity={updateRestaurantItemQuantity}
+                    onRemoveItem={removeRestaurantItem}
+                    onOpenRestaurantMenu={openRestaurantMenu}
+                  />
+                ) : (
+                  <textarea
+                    className="w-full h-40 p-4 border-2 border-orange-100 rounded-[22px] bg-white text-lg text-[#161616] font-black uppercase shadow-[0_8px_18px_rgba(211,47,47,0.08)] focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all placeholder:text-[#7a7a7a]"
+                    placeholder="Ej: 2 Hamburguesas completas con papas"
+                    value={orderText}
+                    onChange={(e) => setOrderText(e.target.value)}
+                    lang="es"
+                    inputMode="text"
+                    spellCheck
+                    autoCapitalize="sentences"
+                  />
+                )}
 
                 <div className="bg-white rounded-[22px] border border-orange-100 shadow-[0_8px_18px_rgba(211,47,47,0.08)] p-4 space-y-4">
                   <label className="flex items-start gap-3 cursor-pointer group">
@@ -594,7 +1282,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
 
                 <button
                   onClick={handleOrderSubmit}
-                  disabled={!selectedType || orderText.trim().length < 3}
+                  disabled={!canSubmitOrder}
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-[22px] font-black shadow-lg shadow-red-200 disabled:bg-red-200 disabled:text-red-900 disabled:opacity-100 transition-all transform active:scale-95 flex items-center justify-center gap-2"
                 >
                   ¡PEDIR AHORA! <ChevronRight size={20} />

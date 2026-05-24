@@ -21,10 +21,13 @@ interface AppContextType {
   logout: () => boolean;
   resetSimulation: () => void;
   selectAppMode: (role: UserRole | null) => void;
-  createOrder: (order: Order) => void;
+  createOrder: (order: Order) => Promise<void>;
   updateOrder: (order: Order) => void;
   addChatMessage: (msg: ChatMessage) => void;
   switchRole: (role: UserRole) => void;
+  showThankYouDialog: boolean;
+  thankYouDialogMessage: string;
+  setShowThankYouDialog: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -50,6 +53,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [pastOrders, setPastOrders] = useState<Order[]>([]);
   const [availableDeliveries, setAvailableDeliveries] = useState<User[]>([]);
   const [assignedDelivery, setAssignedDelivery] = useState<User | null>(null);
+
+  const [showThankYouDialog, setShowThankYouDialog] = useState(false);
+  const [thankYouDialogMessage, setThankYouDialogMessage] = useState('');
+  const [prevActiveOrder, setPrevActiveOrder] = useState<Order | null>(null);
+
+  useEffect(() => {
+    if (prevActiveOrder && !activeOrder) {
+      const user = appMode === UserRole.DELIVERY ? deliveryUser : clientUser;
+      if (user) {
+        const wasCancelled = prevActiveOrder.status === OrderStatus.CANCELLED ||
+                            prevActiveOrder.status === OrderStatus.PENDING_PRICE ||
+                            prevActiveOrder.status === OrderStatus.BIDDING;
+
+        let msg = '';
+        if (wasCancelled) {
+          msg = appMode === UserRole.CLIENT
+            ? "LO SENTIMOS NO HUBO REPARTIDORES DISPONIBLES"
+            : "LO SENTIMOS EL PEDIDO FUE CANCELADO";
+        } else {
+          msg = appMode === UserRole.CLIENT
+            ? "ENTREGA EXITOSA GRACIAS POR TU CONFIANZA"
+            : "PEDIDO COMPLETADO GRACIAS POR EL SERVICIO";
+        }
+        setThankYouDialogMessage(msg);
+        setShowThankYouDialog(true);
+      }
+    }
+    setPrevActiveOrder(activeOrder);
+  }, [activeOrder, appMode, clientUser, deliveryUser]);
 
   useEffect(() => {
     // Si ya tenemos datos locales, dejamos de mostrar el cargando rapido
@@ -366,7 +398,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       clientUser, deliveryUser, currentUser, appMode, activeOrder, pastOrders,
       assignedDelivery, availableDeliveries, isCheckingSession,
       login, registerUser, logout, resetSimulation, selectAppMode, createOrder,
-      updateOrder, addChatMessage, switchRole, updateCurrentUserPhone
+      updateOrder, addChatMessage, switchRole, updateCurrentUserPhone,
+      showThankYouDialog, thankYouDialogMessage, setShowThankYouDialog
     }}>
       {children}
     </AppContext.Provider>
