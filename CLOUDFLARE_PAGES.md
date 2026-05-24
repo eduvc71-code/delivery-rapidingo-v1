@@ -26,7 +26,10 @@ Crea dos proyectos en Cloudflare Pages usando el mismo repositorio de GitHub.
 - Build command: `npm run build:pwas`
 - Build output directory: `dist/cliente`
 - Root directory: dejar vacio
-- Environment variable: `NODE_VERSION=20`
+- Environment variables:
+  - `NODE_VERSION=20`
+  - `VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=TU_ANON_KEY`
 
 URL inicial esperada:
 
@@ -42,7 +45,10 @@ https://rapidingo-cliente.pages.dev
 - Build command: `npm run build:pwas`
 - Build output directory: `dist/delivery`
 - Root directory: dejar vacio
-- Environment variable: `NODE_VERSION=20`
+- Environment variables:
+  - `NODE_VERSION=20`
+  - `VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=TU_ANON_KEY`
 
 URL inicial esperada:
 
