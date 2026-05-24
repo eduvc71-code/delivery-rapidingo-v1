@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss()
     ],
-    // GitHub Pages sirve este repo con el slug publico del repositorio
-    base: '/delivery-rapidingo-v1/',
+    // Rutas relativas para publicar cada PWA como sitio independiente.
+    base: './',
     define: {
       'process.env': JSON.stringify(env),
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.SUPABASE_URL || env.VITE_SUPABASE_URL),
