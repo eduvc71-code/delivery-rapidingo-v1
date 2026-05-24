@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "build:android": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1",
     "build:android:release": "powershell -ExecutionPolicy Bypass -File scripts/build_android_apks.ps1 -BuildType Release",
-    "build:pwas": "npm run build && powershell -ExecutionPolicy Bypass -File scripts/package_pwas.ps1",
+    "build:pwas": "npm run build && node scripts/package_pwas.mjs",
     "preview": "vite preview",
     "predeploy": "npm run build:pwas",
     "deploy": "gh-pages -d dist"

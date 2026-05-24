@@ -47,5 +47,6 @@ java_pid*
 pb_data/
 pocketbase.exe
 *.mjs
+!scripts/package_pwas.mjs
 dist/
 dist-pwa/
