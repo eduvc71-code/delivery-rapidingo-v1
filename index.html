@@ -19,7 +19,7 @@
         if (!role && (path.endsWith('/delivery-rapidingo/') || path.endsWith('/delivery-rapidingo/index.html'))) {
           var rootPath = window.location.pathname.replace(/index\.html$/i, '');
           if (!rootPath.endsWith('/')) rootPath += '/';
-          window.location.replace(rootPath + 'cliente/' + window.location.search + window.location.hash);
+          window.location.replace(rootPath + '?role=cliente' + window.location.hash);
           return;
         }
         if (!role && (path.indexOf('/cliente/') !== -1 || path.indexOf('/client/') !== -1)) role = 'client';

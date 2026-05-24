@@ -29,6 +29,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1350,11 +1351,33 @@ fun DestinationPickerDialog(
                 }
                 
                 Box(modifier = Modifier.fillMaxWidth().height(360.dp)) {
+                    var isSatellite by remember { mutableStateOf(false) }
                     MapLibrePickerView(
                         initialLocation = initialLocation,
                         onPointSelected = { selectedPoint = it },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        isSatellite = isSatellite
                     )
+                    
+                    // BOTÓN SATÉLITE PEQUEÑO
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .size(36.dp)
+                            .clickable { isSatellite = !isSatellite },
+                        shape = CircleShape,
+                        color = Color.White,
+                        shadowElevation = 6.dp
+                    ) {
+                        Icon(
+                            if (isSatellite) Icons.Default.Map else Icons.Default.SatelliteAlt,
+                            contentDescription = null,
+                            modifier = Modifier.padding(8.dp),
+                            tint = Color(0xFFD32F2F)
+                        )
+                    }
+
                     // Pin central fijo para seleccionar
                     Icon(
                         Icons.Default.LocationOn,
@@ -1392,22 +1415,37 @@ fun DestinationPickerDialog(
 fun MapLibrePickerView(
     initialLocation: MyLatLng,
     onPointSelected: (MyLatLng) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isSatellite: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    
+    val styleUrl = if (isSatellite) 
+        "https://tiles.openfreemap.org/styles/liberty" // Estilo detallado
+        else "https://tiles.openfreemap.org/styles/bright"
+
+    LaunchedEffect(isSatellite) {
+        mapLibreMap?.setStyle(styleUrl)
+    }
 
     val mapView = remember {
         MapLibreMapView(context).apply {
             onCreate(null)
             getMapAsync { map ->
                 mapLibreMap = map
-                map.setStyle("https://tiles.openfreemap.org/styles/bright")
+                map.uiSettings.isCompassEnabled = true
+                map.uiSettings.isRotateGesturesEnabled = false // FORZAR NORTE
+                map.uiSettings.isTiltGesturesEnabled = true
+                
+                map.setStyle(styleUrl)
+
                 val camera = CameraPosition.Builder()
                     .target(LatLng(initialLocation.latitude, initialLocation.longitude))
                     .zoom(17.0)
-                    .tilt(45.0) // Efecto 2.5D
+                    .tilt(0.0)
+                    .bearing(0.0) // NORTE
                     .build()
                 map.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
                 
@@ -1908,12 +1946,18 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                                        singleLine = true
+                                        textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF161616)),
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFFD32F2F),
+                                            unfocusedBorderColor = Color.LightGray,
+                                            focusedTextColor = Color(0xFF161616),
+                                            unfocusedTextColor = Color(0xFF161616)
+                                        )
                                     )
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text("SUBTOTAL PROD: Bs. $calculatedProductTotal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                                        Text("TOTAL: Bs. ${calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)}", fontWeight = FontWeight.Black, color = Color(0xFF2E7D32), fontSize = 18.sp)
+                                        Text("SUBTOTAL PROD: Bs. $calculatedProductTotal", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF161616))
+                                        Text("TOTAL: Bs. ${calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)}", fontWeight = FontWeight.Black, color = Color(0xFFD32F2F), fontSize = 24.sp)
                                     }
                                 }
                             } else {
@@ -1925,7 +1969,13 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF161616)),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFFD32F2F),
+                                            unfocusedBorderColor = Color.LightGray,
+                                            focusedTextColor = Color(0xFF161616),
+                                            unfocusedTextColor = Color(0xFF161616)
+                                        )
                                     )
                                     OutlinedTextField(
                                         value = sPrice, 
@@ -1934,13 +1984,19 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF161616)),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFFD32F2F),
+                                            unfocusedBorderColor = Color.LightGray,
+                                            focusedTextColor = Color(0xFF161616),
+                                            unfocusedTextColor = Color(0xFF161616)
+                                        )
                                     )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text("TOTAL A COBRAR:", fontWeight = FontWeight.Bold, color = Color(0xFF565656), fontSize = 12.sp)
-                                    Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = Color(0xFF2E7D32), fontSize = 22.sp)
+                                    Text("TOTAL A COBRAR:", fontWeight = FontWeight.Black, color = Color(0xFF565656), fontSize = 14.sp)
+                                    Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = Color(0xFFD32F2F), fontSize = 28.sp)
                                 }
                             }
                         }
@@ -2303,11 +2359,13 @@ fun MapLibreTrackingView(
             getMapAsync { map ->
                 mapLibreMap = map
                 map.uiSettings.isCompassEnabled = true
-                map.uiSettings.isRotateGesturesEnabled = true
+                map.uiSettings.isRotateGesturesEnabled = false // FORZAR NORTE
                 map.uiSettings.isTiltGesturesEnabled = true
                 map.setStyle("https://tiles.openfreemap.org/styles/bright") {
                     isStyleReady = true
                 }
+                // FORZAR NORTE INICIAL
+                map.moveCamera(CameraUpdateFactory.bearingTo(0.0))
             }
         }
     }
@@ -2423,7 +2481,7 @@ private fun moveMapLibreCamera(map: MapLibreMap, point: LatLng, alreadyInitializ
         .target(point)
         .zoom(if (alreadyInitialized) map.cameraPosition.zoom.coerceAtLeast(17.2) else 17.6)
         .tilt(52.0)
-        .bearing(map.cameraPosition.bearing)
+        .bearing(0.0) // NORTE SIEMPRE ARRIBA
         .build()
     map.animateCamera(CameraUpdateFactory.newCameraPosition(camera))
 }

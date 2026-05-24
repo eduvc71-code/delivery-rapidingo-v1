@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss()
     ],
-    // Cambia esto al nombre exacto de tu repositorio en GitHub
-    base: '/Delivery_Rapidingo/',
+    // GitHub Pages sirve este repo en minúsculas independientemente del nombre del repo
+    base: '/delivery-rapidingo/',
     define: {
       'process.env': JSON.stringify(env),
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.SUPABASE_URL || env.VITE_SUPABASE_URL),

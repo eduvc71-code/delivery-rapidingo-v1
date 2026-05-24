@@ -57,6 +57,7 @@ foreach ($app in $apps) {
 
   $indexPath = Join-Path $target "index.html"
   $index = Get-Content -LiteralPath $indexPath -Raw
+  $index = $index -replace "/Delivery_Rapidingo/", "./"
   $index = $index -replace "/delivery-rapidingo/", "./"
   $index = $index -replace '<link rel="manifest" href="\./manifest\.json" id="app-manifest">', '<link rel="manifest" href="./manifest.json" id="app-manifest">'
   $index = $index -replace "var role = new URLSearchParams\(window\.location\.search\)\.get\('role'\);", "var role = '$($app.Role)';"

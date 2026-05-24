@@ -7,7 +7,8 @@ import {
   Send, 
   LogOut, ShoppingBag, MapPin, MessageCircle, Clock, 
   User as UserIcon, Home, ChevronRight, X, PhoneCall, Bike, Truck,
-  Star, Plus, Minus, Trash2, ReceiptText, Store, Maximize2, ZoomIn, ZoomOut
+  Star, Plus, Minus, Trash2, ReceiptText, Store, Maximize2, ZoomIn, ZoomOut,
+  Search, Map as MapIcon, Satellite
 } from 'lucide-react';
 
 const CLIENT_CATEGORY_CONFIG: Record<OrderType, { img: string, bg: string, color: string }> = {
@@ -280,6 +281,8 @@ const getCurrentDeliveryPoint = (): Promise<DeliveryPoint> => new Promise((resol
   );
 });
 
+const MAPTILER_KEY = '3cP8iNk1Zj2ghLvTv5eB';
+
 const DestinationPickerModal: React.FC<{
   initialPoint: DeliveryPoint;
   isAlternative: boolean;
@@ -290,20 +293,75 @@ const DestinationPickerModal: React.FC<{
   const mapInstance = useRef<any>(null);
   const markerInstance = useRef<any>(null);
   const [point, setPoint] = useState<DeliveryPoint>(initialPoint);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSatellite, setIsSatellite] = useState(false);
 
   useEffect(() => {
     setPoint(initialPoint);
   }, [initialPoint.lat, initialPoint.lng]);
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Proximity centrado en Trinidad, Bolivia (-14.83, -64.90)
+      const resp = await fetch(
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=-64.90,-14.83&language=es&bbox=-64.95,-14.87,-64.85,-14.79`
+      );
+      const data = await resp.json();
+      setSuggestions(data.features || []);
+    } catch (err) {
+      console.error('Error buscando direccion:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectSuggestion = (feature: any) => {
+    const [lng, lat] = feature.center;
+    const nextPoint = {
+      lat,
+      lng,
+      address: feature.place_name
+    };
+    setPoint(nextPoint);
+    if (mapInstance.current) {
+      mapInstance.current.setView([lat, lng], 17);
+    }
+    if (markerInstance.current) {
+      markerInstance.current.setLatLng([lat, lng]);
+    }
+    setSuggestions([]);
+    setSearchQuery('');
+  };
+
   useEffect(() => {
     if (!mapRef.current || !L) return;
 
-    const map = L.map(mapRef.current).setView([initialPoint.lat, initialPoint.lng], 17);
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      rotate: false
+    }).setView([initialPoint.lat, initialPoint.lng], 17);
     mapInstance.current = map;
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri'
-    }).addTo(map);
+    // FORZAR NORTE SI EXISTE EL PLUGIN
+    if (map.setBearing) map.setBearing(0);
+
+    const baseLayer = L.tileLayer(
+      isSatellite
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=' + MAPTILER_KEY,
+      {
+        attribution: isSatellite ? 'Tiles &copy; Esri' : '&copy; MapTiler'
+      }
+    ).addTo(map);
 
     const marker = L.marker([initialPoint.lat, initialPoint.lng], { draggable: true }).addTo(map);
     markerInstance.current = marker;
@@ -334,34 +392,77 @@ const DestinationPickerModal: React.FC<{
       mapInstance.current = null;
       markerInstance.current = null;
     };
-  }, [initialPoint.lat, initialPoint.lng, isAlternative]);
+  }, [initialPoint.lat, initialPoint.lng, isAlternative, isSatellite]);
 
   return (
     <div className="absolute inset-0 z-[80] bg-black/60 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="p-4 border-b flex items-center justify-between">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-4 border-b flex items-center justify-between shrink-0">
           <div>
             <p className="text-xs font-black text-red-600 uppercase tracking-wider">Destino de entrega</p>
             <h3 className="text-lg font-black text-gray-900">
-              {isAlternative ? 'Escoge otra ubicacion' : 'Confirma tu ubicacion'}
+              {isAlternative ? 'Busca tu direccion' : 'Confirma tu ubicacion'}
             </h3>
           </div>
-          <button onClick={onCancel} className="p-2 rounded-full bg-gray-100 text-gray-600">
+          <button onClick={onCancel} className="p-2 rounded-full bg-gray-100 text-gray-600 active:scale-90 transition-transform">
             <X size={18} />
           </button>
         </div>
-        <div className="h-80 bg-gray-200 relative">
+
+        {/* Buscador MapTiler */}
+        <div className="px-4 py-3 bg-gray-50 border-b relative z-[90] shrink-0">
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {isSearching ? <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" /> : <Search size={16} />}
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Ej: Hospital Obrero, Plaza Principal..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold focus:border-red-500 outline-none transition-all"
+            />
+          </div>
+
+          {suggestions.length > 0 && (
+            <div className="absolute left-4 right-4 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden overflow-y-auto max-h-48 border-t-0">
+              {suggestions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => selectSuggestion(s)}
+                  className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-red-50 border-b last:border-0 flex items-start gap-2"
+                >
+                  <MapPin size={14} className="text-red-500 shrink-0 mt-0.5" />
+                  <span>{s.place_name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-h-[300px] bg-gray-200 relative">
           <div ref={mapRef} className="absolute inset-0" />
-          <div className="absolute left-3 bottom-3 right-3 bg-white/95 rounded-xl px-3 py-2 shadow text-[11px] font-bold text-gray-700">
-            Toca el mapa o mueve el marcador. Lat {point.lat.toFixed(5)}, Lng {point.lng.toFixed(5)}
+
+          {/* Botón Vista Satelital */}
+          <button
+            onClick={() => setIsSatellite(!isSatellite)}
+            className="absolute top-3 right-3 z-[10] p-2 bg-white/90 backdrop-blur rounded-xl shadow-lg border border-white/50 text-red-600 active:scale-90 transition-transform"
+            title="Cambiar vista"
+          >
+            {isSatellite ? <MapIcon size={20} /> : <Satellite size={20} />}
+          </button>
+
+          <div className="absolute left-3 bottom-3 right-3 bg-white/95 rounded-xl px-3 py-2 shadow text-[10px] font-black text-[#161616] border border-red-100/50 z-[10]">
+            Punto: {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
           </div>
         </div>
-        <div className="p-4 grid grid-cols-2 gap-2">
-          <button onClick={onCancel} className="bg-gray-100 text-gray-700 py-3 rounded-xl font-black">
+
+        <div className="p-4 grid grid-cols-2 gap-3 shrink-0 bg-white">
+          <button onClick={onCancel} className="bg-gray-100 text-[#565656] py-3.5 rounded-xl font-black text-sm uppercase tracking-tight">
             Cancelar
           </button>
-          <button onClick={() => onConfirm(point)} className="bg-red-600 text-white py-3 rounded-xl font-black">
-            Confirmar
+          <button onClick={() => onConfirm(point)} className="bg-red-600 text-white py-3.5 rounded-xl font-black text-sm shadow-lg shadow-red-200 uppercase tracking-tight">
+            Confirmar Ubicacion
           </button>
         </div>
       </div>

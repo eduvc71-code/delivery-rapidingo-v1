@@ -21,7 +21,13 @@ const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ order, isDeliveryView }
 
     // Initialize map if not already done
     if (!leafletMap.current) {
-      leafletMap.current = L.map(mapRef.current).setView([order.location.lat || -12.046374, order.location.lng || -77.042793], 15);
+      leafletMap.current = L.map(mapRef.current, {
+        zoomControl: false,
+        rotate: false // Deshabilitar rotación manual
+      }).setView([order.location.lat || -12.046374, order.location.lng || -77.042793], 15);
+
+      // FORZAR NORTE
+      leafletMap.current.setBearing(0);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
