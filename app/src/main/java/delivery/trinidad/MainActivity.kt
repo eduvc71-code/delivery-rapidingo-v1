@@ -32,6 +32,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -633,6 +634,11 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
         ?: viewModel.clientUser?.location
         ?: MyLatLng(-14.8336, -64.9000)
 
+    var restFilterCategory by remember { mutableStateOf<String?>(null) }
+    var showSummaryDialog by remember { mutableStateOf(false) }
+    var showOrderDialog by remember { mutableStateOf(false) }
+    var currentRestaurantForDialog by remember { mutableStateOf<Restaurant?>(null) }
+
     fun closeClientSession() {
         viewModel.closeSession(
             onSuccess = {
@@ -655,45 +661,68 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
         uri?.let { viewModel.uploadPaymentPhoto(it) } 
     }
     
-    Scaffold(topBar = { 
-        TopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color(0xFF161616),
-                actionIconContentColor = Color(0xFFD32F2F)
-            ),
-            title = { 
-                Column {
-                    Text(
-                        "¡Hola, $clientName!",
-                        fontSize = 22.sp,
-                        lineHeight = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF161616),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        "¿Qué te llevamos hoy?",
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD32F2F)
-                    )
+    Scaffold(
+        topBar = { 
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color(0xFF161616),
+                    actionIconContentColor = Color(0xFFD32F2F)
+                ),
+                title = { 
+                    Column {
+                        Text(
+                            "¡Hola, $clientName!",
+                            fontSize = 22.sp,
+                            lineHeight = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF161616),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "¿Qué te llevamos hoy?",
+                            fontSize = 14.sp,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD32F2F)
+                        )
+                    }
+                }, 
+                actions = { 
+                    if (selectedCategory == "COMIDA" && viewModel.tempOrderItems.isNotEmpty()) {
+                        BadgedBox(
+                            badge = {
+                                Badge(containerColor = Color(0xFFD32F2F)) {
+                                    Text("${viewModel.tempOrderItems.sumOf { it.quantity }}", color = Color.White)
+                                }
+                            }
+                        ) {
+                            IconButton(onClick = { showSummaryDialog = true }) {
+                                Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFD32F2F))
+                            }
+                        }
+                    }
+                    IconButton(onClick = { closeClientSession() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = Color(0xFFD32F2F)) }
                 }
-            }, 
-            actions = { 
-                IconButton(onClick = { closeClientSession() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = Color(0xFFD32F2F)) }
+            ) 
+        },
+        floatingActionButton = {
+            if (selectedCategory == "COMIDA" && viewModel.tempOrderItems.isNotEmpty()) {
+                ExtendedFloatingActionButton(
+                    onClick = { showSummaryDialog = true },
+                    containerColor = Color(0xFFD32F2F),
+                    contentColor = Color.White,
+                    icon = { Icon(Icons.Default.ReceiptLong, null) },
+                    text = { Text("VER RESUMEN (${viewModel.tempOrderItems.sumOf { it.quantity }})") }
+                )
             }
-        ) 
-    }) { innerPadding ->
-        // Contenedor principal con fondo blanco para evitar áreas negras
+        }
+    ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(Color(0xFFFFFBF8))) {
             if (viewModel.activeOrder == null) {
-                // Solo la creación del pedido es scrollable
-                Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 18.dp)) {
-                    
-                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         CategoryButton("COMIDA", R.drawable.category_restaurant, Color(0xFFFFF3E0), selectedCategory == "COMIDA", Modifier.weight(1f)) {
                             selectedCategory = "COMIDA"
                         }
@@ -705,89 +734,134 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                         }
                     }
 
-                    OutlinedTextField(
-                        value = orderText, 
-                        onValueChange = { orderText = it }, 
-                        label = { Text("Detalle del pedido y referencia") },
-                        placeholder = { Text("Escribe aquí lo que necesitas") },
-                        modifier = Modifier.fillMaxWidth().height(140.dp),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                        visualTransformation = UppercaseVisualTransformation,
-                        shape = RoundedCornerShape(22.dp),
-                        textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color(0xFF161616)),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFF57C00),
-                            unfocusedBorderColor = Color(0xFFE7D7CE),
-                            focusedLabelColor = Color(0xFFD32F2F),
-                            unfocusedLabelColor = Color(0xFF565656),
-                            cursorColor = Color(0xFFD32F2F),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
+                    if (selectedCategory == "COMIDA") {
+                        RestaurantCarouselScreen(
+                            restaurants = viewModel.restaurants,
+                            selectedCategory = restFilterCategory,
+                            onCategoryFilter = { restFilterCategory = it },
+                            onRestaurantDoubleTap = { restaurant ->
+                                currentRestaurantForDialog = restaurant
+                                showOrderDialog = true
+                            }
                         )
-                    )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 16.dp)) {
+                            OutlinedTextField(
+                                value = orderText, 
+                                onValueChange = { orderText = it }, 
+                                label = { Text("Detalle del pedido y referencia") },
+                                placeholder = { Text("Escribe aquí lo que necesitas") },
+                                modifier = Modifier.fillMaxWidth().height(140.dp),
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                                visualTransformation = UppercaseVisualTransformation,
+                                shape = RoundedCornerShape(22.dp),
+                                textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color(0xFF161616)),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFFF57C00),
+                                    unfocusedBorderColor = Color(0xFFE7D7CE),
+                                    focusedLabelColor = Color(0xFFD32F2F),
+                                    unfocusedLabelColor = Color(0xFF565656),
+                                    cursorColor = Color(0xFFD32F2F),
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White
+                                )
+                            )
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                        border = BorderStroke(1.dp, Color(0xFFFFE0B2)),
-                        shape = RoundedCornerShape(22.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(
-                                    checked = sendToOtherLocation,
-                                    onCheckedChange = { checked ->
-                                        sendToOtherLocation = checked
-                                        if (checked) {
-                                            showDestinationPicker = true
-                                        } else {
-                                            selectedDestination = null
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFFE0B2)),
+                                shape = RoundedCornerShape(22.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = sendToOtherLocation,
+                                            onCheckedChange = { checked ->
+                                                sendToOtherLocation = checked
+                                                if (checked) {
+                                                    showDestinationPicker = true
+                                                } else {
+                                                    selectedDestination = null
+                                                }
+                                            }
+                                        )
+                                        Column {
+                                            Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color(0xFF161616))
+                                            val locDesc = if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
+                                            Text(locDesc, color = Color(0xFF565656), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         }
                                     }
-                                )
-                                Column {
-                                    Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color(0xFF161616))
-                                    val locDesc = if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
-                                    Text(locDesc, color = Color(0xFF565656), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                 }
+                            }
+
+                            Button(
+                                onClick = { 
+                                    val category = selectedCategory
+                                    if(category != null && orderText.isNotBlank()) {
+                                        viewModel.createOrder(category, orderText.trim().uppercase(), selectedDestination ?: defaultDestination)
+                                        selectedCategory = null
+                                        sendToOtherLocation = false
+                                        selectedDestination = null
+                                        orderText = ""
+                                    }
+                                }, 
+                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 60.dp).height(64.dp),
+                                enabled = selectedCategory != null && orderText.trim().length >= 2,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFD32F2F),
+                                    disabledContainerColor = Color(0xFFFFCDD2),
+                                    disabledContentColor = Color(0xFF8A1F1F)
+                                ),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp),
+                                shape = RoundedCornerShape(20.dp)
+                            ) { 
+                                Text("¡PEDIR AHORA!", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color.White)
                             }
                         }
                     }
-
-                    Button(
-                        onClick = { 
-                            val category = selectedCategory
-                            if(category != null && orderText.isNotBlank()) {
-                                viewModel.createOrder(category, orderText.trim().uppercase(), selectedDestination ?: defaultDestination)
-                                selectedCategory = null
-                                sendToOtherLocation = false
-                                selectedDestination = null
-                                orderText = ""
-                            }
-                        }, 
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 60.dp).height(64.dp),
-                        enabled = selectedCategory != null && orderText.trim().length >= 2,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFD32F2F),
-                            disabledContainerColor = Color(0xFFFFCDD2),
-                            disabledContentColor = Color(0xFF8A1F1F)
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp),
-                        shape = RoundedCornerShape(20.dp)
-                    ) { 
-                        Text("¡PEDIR AHORA!", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color.White)
-                    }
                 }
             } else {
-                // El seguimiento NO debe ser scrollable para que el mapa ocupe todo el espacio correctamente
                 OSMOrderTracking(viewModel, onOpenChat = { showChat.value = true })
             }
         }
     }
+
+    if (showOrderDialog && currentRestaurantForDialog != null) {
+        RestaurantOrderDialog(
+            restaurant = currentRestaurantForDialog!!,
+            existingItems = viewModel.tempOrderItems.filter { it.restaurantId == currentRestaurantForDialog?.id },
+            onAddItem = { name, qty ->
+                viewModel.addItemToTempOrder(currentRestaurantForDialog!!, name, qty)
+            },
+            onRemoveItem = { viewModel.removeTempItem(it) },
+            onUpdateQuantity = { id, qty -> viewModel.updateTempItemQuantity(id, qty) },
+            onDismiss = { showOrderDialog = false }
+        )
+    }
+
+    if (showSummaryDialog) {
+        OrderSummaryDialog(
+            items = viewModel.tempOrderItems,
+            onEditItem = { id ->
+                showSummaryDialog = false
+                val item = viewModel.tempOrderItems.find { it.id == id }
+                item?.let {
+                    currentRestaurantForDialog = viewModel.restaurants.find { r -> r.id == it.restaurantId }
+                    showOrderDialog = true
+                }
+            },
+            onRemoveItem = { viewModel.removeTempItem(it) },
+            onClearAll = { viewModel.clearTempOrder() },
+            onConfirmOrder = { viewModel.confirmTempOrderAndCreate() },
+            onDismiss = { showSummaryDialog = false }
+        )
+    }
+
     if (showChat.value) {
-            viewModel.lastReadChatSize = viewModel.activeOrder?.chatHistory?.size ?: 0
-            ChatDialog(viewModel, viewModel.clientUser?.id ?: "", onDismiss = { showChat.value = false }, onOpenCamera = onOpenCamera)
+        viewModel.lastReadChatSize = viewModel.activeOrder?.chatHistory?.size ?: 0
+        ChatDialog(viewModel, viewModel.clientUser?.id ?: "", onDismiss = { showChat.value = false }, onOpenCamera = onOpenCamera)
     }
     if (showDestinationPicker) {
         DestinationPickerDialog(
@@ -799,6 +873,455 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
             }
         )
     }
+}
+
+@Composable
+fun RestaurantCarouselScreen(
+    restaurants: List<Restaurant>,
+    selectedCategory: String?,
+    onCategoryFilter: (String?) -> Unit,
+    onRestaurantDoubleTap: (Restaurant) -> Unit
+) {
+    val categories = listOf("TODOS", "HAMBURGUESAS", "PARRILLA", "COMIDA_RAPIDA", "RESTAURANTE")
+    val filteredRestaurants = if (selectedCategory == null || selectedCategory == "TODOS") {
+        restaurants
+    } else {
+        restaurants.filter { it.category == selectedCategory }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(categories) { category ->
+                FilterChip(
+                    selected = (category == selectedCategory || (category == "TODOS" && selectedCategory == null)),
+                    onClick = { onCategoryFilter(if (category == "TODOS") null else category) },
+                    label = { Text(category) }
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.DoubleArrow, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Doble clic en la tarjeta para pedir", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF565656))
+        }
+
+        LazyRow(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(filteredRestaurants) { restaurant ->
+                RestaurantCardDoubleTap(
+                    restaurant = restaurant,
+                    onDoubleTap = { onRestaurantDoubleTap(restaurant) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RestaurantCardDoubleTap(
+    restaurant: Restaurant,
+    onDoubleTap: () -> Unit
+) {
+    var lastTapTime by remember { mutableLongStateOf(0L) }
+
+    Card(
+        modifier = Modifier
+            .width(300.dp)
+            .height(220.dp)
+            .clickable {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastTapTime < 300) {
+                    onDoubleTap()
+                }
+                lastTapTime = currentTime
+            },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(restaurant.logoColor).copy(alpha = 0.8f),
+                            Color(restaurant.logoColor)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (restaurant.logoUrl != null) {
+                AsyncImage(
+                    model = restaurant.logoUrl,
+                    contentDescription = restaurant.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.6f)
+                                )
+                            )
+                        )
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Icon(
+                    Icons.Default.Restaurant,
+                    null,
+                    tint = Color.White,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    restaurant.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.9f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.DoubleArrow, null, tint = Color(restaurant.logoColor), modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("DOBLE CLIC PARA PEDIR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(restaurant.logoColor))
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.9f)
+            ) {
+                Text(
+                    restaurant.category,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(restaurant.logoColor)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RestaurantOrderDialog(
+    restaurant: Restaurant,
+    existingItems: List<TempOrderItem>,
+    onAddItem: (String, Int) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onUpdateQuantity: (String, Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var productName by remember { mutableStateOf("") }
+    var quantity by remember { mutableIntStateOf(1) }
+    val scrollState = rememberScrollState()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (productName.isNotBlank() && quantity > 0) {
+                        onAddItem(productName, quantity)
+                        productName = ""
+                        quantity = 1
+                    }
+                },
+                enabled = productName.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text("AGREGAR")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CERRAR")
+            }
+        },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = Color(restaurant.logoColor).copy(alpha = 0.2f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Restaurant, null, tint = Color(restaurant.logoColor), modifier = Modifier.size(20.dp))
+                    }
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(restaurant.name, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("Toca en la foto para pedir • ${existingItems.size} items", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+                    .verticalScroll(scrollState)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = productName,
+                            onValueChange = { productName = it.uppercase() },
+                            placeholder = { Text("NOMBRE DEL PLATO...") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                            maxLines = 1,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFFD32F2F),
+                                unfocusedBorderColor = Color.LightGray
+                            )
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                        ) {
+                            IconButton(
+                                onClick = { if (quantity > 1) quantity-- },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
+                            }
+                            Text(
+                                "$quantity",
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                            IconButton(
+                                onClick = { quantity++ },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text("TUS PRODUCTOS:", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+
+                if (existingItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.ShoppingBasket, null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text("Aún no has agregado productos", color = Color.Gray, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        existingItems.forEach { item ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.productName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text(restaurant.name, fontSize = 11.sp, color = Color.Gray)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("x${item.quantity}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD32F2F))
+                                        IconButton(
+                                            onClick = { onRemoveItem(item.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.7f)
+    )
+}
+
+@Composable
+fun OrderSummaryDialog(
+    items: List<TempOrderItem>,
+    onEditItem: (String) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onClearAll: () -> Unit,
+    onConfirmOrder: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val grouped = items.groupBy { it.restaurantName }
+    val totalItems = items.sumOf { it.quantity }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("SEGUIR PEDIDO")
+                }
+                Button(
+                    onClick = onConfirmOrder,
+                    modifier = Modifier.weight(1.5f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                ) {
+                    Icon(Icons.Default.Check, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("CONFIRMAR")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onClearAll) {
+                Text("VACIAR TODO", color = Color.Red)
+            }
+        },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(28.dp))
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("RESUMEN DE PEDIDO", fontWeight = FontWeight.ExtraBold)
+                    Text("$totalItems productos en ${grouped.size} restaurante(s)", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 350.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                grouped.forEach { (restaurantName, restItems) ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFF8F9FA)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Restaurant, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(restaurantName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Spacer(Modifier.weight(1f))
+                                Text("${restItems.size} items", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp).alpha(0.2f))
+                            restItems.forEach { item ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("• ${item.productName}", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                        Spacer(Modifier.width(8.dp))
+                                        Surface(
+                                            modifier = Modifier.size(24.dp),
+                                            shape = CircleShape,
+                                            color = Color(0xFFD32F2F).copy(alpha = 0.1f)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text("x${item.quantity}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                                            }
+                                        }
+                                    }
+                                    Row {
+                                        IconButton(
+                                            onClick = { onEditItem(item.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Edit, null, tint = Color.Blue, modifier = Modifier.size(16.dp))
+                                        }
+                                        IconButton(
+                                            onClick = { onRemoveItem(item.id) },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f)
+    )
 }
 
 @Composable
@@ -1219,11 +1742,53 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
     }
 }
 
+private fun parseQuoteRows(description: String?): List<QuoteRow> {
+    val rows = mutableListOf<QuoteRow>()
+    if (description.isNullOrBlank()) return rows
+    
+    var currentRestaurant = "RESTAURANTE"
+    val lines = description.split("\n", "\r")
+    for (line in lines) {
+        val trimmed = line.trim()
+        if (trimmed.startsWith("RESTAURANTE:", ignoreCase = true)) {
+            currentRestaurant = trimmed.substring("RESTAURANTE:".length).trim()
+        } else if (trimmed.startsWith("- ")) {
+            val itemPart = trimmed.substring(2).trim()
+            val lastXIdx = itemPart.lastIndexOf(" x")
+            if (lastXIdx != -1) {
+                val itemName = itemPart.substring(0, lastXIdx).trim()
+                val qtyStr = itemPart.substring(lastXIdx + 2).trim()
+                val qty = qtyStr.toIntOrNull() ?: 1
+                rows.add(QuoteRow(restaurant = currentRestaurant, item = itemName, quantity = qty))
+            } else {
+                rows.add(QuoteRow(restaurant = currentRestaurant, item = itemPart, quantity = 1))
+            }
+        }
+    }
+    return rows
+}
+
 @Composable
 fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String, onPChange: (String) -> Unit, onSChange: (String) -> Unit, onOpenChat: () -> Unit) {
     val order = viewModel.activeOrder ?: return
     val deliveryDestination = order.destinationLocation ?: order.clientLocation
-    val totalCalculated = (pPrice.toDoubleOrNull() ?: 0.0) + (sPrice.toDoubleOrNull() ?: 0.0)
+    
+    val quoteRows = remember(order.id, order.description) { parseQuoteRows(order.description) }
+    val unitPrices = remember(order.id) { mutableStateMapOf<Int, String>() }
+
+    val calculatedProductTotal = quoteRows.indices.sumOf { index ->
+        val qty = quoteRows[index].quantity
+        val priceStr = unitPrices[index] ?: ""
+        val price = priceStr.toDoubleOrNull() ?: 0.0
+        qty * price
+    }
+
+    val totalCalculated = if (order.category == "COMIDA" && quoteRows.isNotEmpty()) {
+        calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)
+    } else {
+        (pPrice.toDoubleOrNull() ?: 0.0) + (sPrice.toDoubleOrNull() ?: 0.0)
+    }
+
     val context = LocalContext.current
     val clientNameDisplay = order.clientName.ifBlank { "Cliente" }
     
@@ -1286,36 +1851,103 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                     }
                     OrderStatus.BIDDING -> {
                         Column(modifier = Modifier.background(Color(0xFFFFF8F2), RoundedCornerShape(18.dp)).padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedTextField(
-                                    value = pPrice, 
-                                    onValueChange = onPChange, 
-                                    label = { Text("PRODUCTOS", fontSize = 11.sp, fontWeight = FontWeight.Black) }, 
-                                    modifier = Modifier.weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    shape = RoundedCornerShape(12.dp),
-                                    textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                )
-                                OutlinedTextField(
-                                    value = sPrice, 
-                                    onValueChange = onSChange, 
-                                    label = { Text("TARIFA", fontSize = 11.sp, fontWeight = FontWeight.Black) }, 
-                                    modifier = Modifier.weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    shape = RoundedCornerShape(12.dp),
-                                    textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                )
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("TOTAL A COBRAR:", fontWeight = FontWeight.Bold, color = Color(0xFF565656), fontSize = 12.sp)
-                                Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = Color(0xFF2E7D32), fontSize = 22.sp)
+                            if (order.category == "COMIDA" && quoteRows.isNotEmpty()) {
+                                Text("COTIZACIÓN DESGLOSADA", fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color(0xFFD32F2F))
+                                Spacer(Modifier.height(8.dp))
+                                
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 180.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    quoteRows.forEachIndexed { index, item ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                                            border = BorderStroke(1.dp, Color(0xFFE7D7CE))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(item.item, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
+                                                    Text("Cant: ${item.quantity} • ${item.restaurant}", fontSize = 11.sp, color = Color.Gray)
+                                                }
+                                                Spacer(Modifier.width(8.dp))
+                                                OutlinedTextField(
+                                                    value = unitPrices[index] ?: "",
+                                                    onValueChange = { newValue ->
+                                                        if (newValue.isEmpty() || newValue.all { it.isDigit() || it == '.' }) {
+                                                            unitPrices[index] = newValue
+                                                        }
+                                                    },
+                                                    placeholder = { Text("0.00") },
+                                                    modifier = Modifier.width(90.dp).height(50.dp),
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                                    singleLine = true
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                HorizontalDivider(modifier = Modifier.alpha(0.2f))
+                                Spacer(Modifier.height(12.dp))
+                                
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    OutlinedTextField(
+                                        value = sPrice, 
+                                        onValueChange = onSChange, 
+                                        label = { Text("TARIFA ENVIÓ", fontSize = 11.sp, fontWeight = FontWeight.Black) }, 
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp),
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                        singleLine = true
+                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("SUBTOTAL PROD: Bs. $calculatedProductTotal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                        Text("TOTAL: Bs. ${calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)}", fontWeight = FontWeight.Black, color = Color(0xFF2E7D32), fontSize = 18.sp)
+                                    }
+                                }
+                            } else {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    OutlinedTextField(
+                                        value = pPrice, 
+                                        onValueChange = onPChange, 
+                                        label = { Text("PRODUCTOS", fontSize = 11.sp, fontWeight = FontWeight.Black) }, 
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp),
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    )
+                                    OutlinedTextField(
+                                        value = sPrice, 
+                                        onValueChange = onSChange, 
+                                        label = { Text("TARIFA", fontSize = 11.sp, fontWeight = FontWeight.Black) }, 
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp),
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    )
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Text("TOTAL A COBRAR:", fontWeight = FontWeight.Bold, color = Color(0xFF565656), fontSize = 12.sp)
+                                    Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = Color(0xFF2E7D32), fontSize = 22.sp)
+                                }
                             }
                         }
                         Spacer(Modifier.height(16.dp))
                         Button(
                             onClick = {
-                                val p = pPrice.toDoubleOrNull() ?: 0.0
+                                val p = if (order.category == "COMIDA" && quoteRows.isNotEmpty()) calculatedProductTotal else (pPrice.toDoubleOrNull() ?: 0.0)
                                 val s = sPrice.toDoubleOrNull() ?: 0.0
                                 viewModel.setOrderPrices(p, s)
                                 onPChange("")

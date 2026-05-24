@@ -64,6 +64,209 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var deliveryStatusJob: Job? = null
     private var reportsJob: Job? = null
 
+    // ==================== ESTADOS PARA CARRITO INTERACTIVO ====================
+    var tempOrderItems by mutableStateOf<List<TempOrderItem>>(emptyList())
+    var currentRestaurantForOrder by mutableStateOf<Restaurant?>(null)
+    var showOrderDialog by mutableStateOf(false)
+    var showSummaryDialog by mutableStateOf(false)
+
+    // ==================== LISTA DE 10 RESTAURANTES CON IMÁGENES DE SUPABASE ====================
+    val restaurants = listOf(
+        Restaurant(
+            id = "wings_drinks",
+            name = "Wings & Drinks",
+            category = "COMIDA_RAPIDA",
+            rating = 4.6,
+            deliveryTime = "25-35 min",
+            deliveryFee = 5.0,
+            minOrder = 20.0,
+            phone = "74721716",
+            address = "Trinidad Centro",
+            schedule = "Lun-Dom: 12:00 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/wings_drinks.png",
+            logoColor = 0xFFFF5722L
+        ),
+        Restaurant(
+            id = "el_brete",
+            name = "El Brete Churrasqueria",
+            category = "PARRILLA",
+            rating = 4.8,
+            deliveryTime = "35-45 min",
+            deliveryFee = 7.0,
+            minOrder = 50.0,
+            phone = "69376937",
+            address = "C/ Macheteros #284",
+            schedule = "Lun-Dom: 12:00 - 23:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_brete.png",
+            logoColor = 0xFFE91E63L
+        ),
+        Restaurant(
+            id = "la_toscana_1",
+            name = "La Toscana Centro",
+            category = "RESTAURANTE",
+            rating = 4.7,
+            deliveryTime = "30-40 min",
+            deliveryFee = 6.0,
+            minOrder = 20.0,
+            phone = "73939626",
+            address = "Calle La Paz esq. 18 de Noviembre",
+            schedule = "Lun-Dom: 11:30 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana.png",
+            logoColor = 0xFF9C27B0L
+        ),
+        Restaurant(
+            id = "la_toscana_2",
+            name = "La Toscana - Tablitas",
+            category = "PARRILLA",
+            rating = 4.7,
+            deliveryTime = "30-40 min",
+            deliveryFee = 6.0,
+            minOrder = 55.0,
+            phone = "73939626",
+            address = "Calle La Paz esq. 18 de Noviembre",
+            schedule = "Lun-Dom: 11:30 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana1.png",
+            logoColor = 0xFF673AB7L
+        ),
+        Restaurant(
+            id = "la_plazuela",
+            name = "La Plazuela J&C",
+            category = "RESTAURANTE",
+            rating = 4.5,
+            deliveryTime = "30-40 min",
+            deliveryFee = 6.0,
+            minOrder = 18.0,
+            phone = "73900041",
+            address = "Calle 9 de Abril, diagonal parroquia Fatima",
+            schedule = "Lun-Dom: 12:00 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_plazuela.png",
+            logoColor = 0xFF795548L
+        ),
+        Restaurant(
+            id = "la_coqueta",
+            name = "La Coqueta",
+            category = "HAMBURGUESAS",
+            rating = 4.5,
+            deliveryTime = "25-35 min",
+            deliveryFee = 5.0,
+            minOrder = 15.0,
+            phone = "72845195",
+            address = "Calle Sucre esquina 9 de Abril",
+            schedule = "Mar-Dom: 19:00 - 23:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_coqueta.png",
+            logoColor = 0xFFE91E63L
+        ),
+        Restaurant(
+            id = "mr_grill",
+            name = "Mr. Grill",
+            category = "HAMBURGUESAS",
+            rating = 4.8,
+            deliveryTime = "20-30 min",
+            deliveryFee = 0.0,
+            minOrder = 20.0,
+            phone = "77848655",
+            address = "Calle Santa Cruz esq. Av. del Mar",
+            schedule = "Lun-Dom: 12:00 - 23:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/mr_grill.png",
+            logoColor = 0xFFFF5722L
+        ),
+        Restaurant(
+            id = "el_benianito",
+            name = "Restaurante El Benianito",
+            category = "RESTAURANTE",
+            rating = 4.3,
+            deliveryTime = "30-40 min",
+            deliveryFee = 7.0,
+            minOrder = 22.0,
+            phone = "72815881",
+            address = "Av. del Mar frente a la Plaza Ganadera",
+            schedule = "19:00 - 12:30",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_benianito.png",
+            logoColor = 0xFF3F51B5L
+        ),
+        Restaurant(
+            id = "toby",
+            name = "Toby - Cuarto de Libra",
+            category = "HAMBURGUESAS",
+            rating = 4.4,
+            deliveryTime = "20-30 min",
+            deliveryFee = 5.0,
+            minOrder = 27.0,
+            phone = "67270686",
+            address = "Trinidad Centro",
+            schedule = "Lun-Dom: 12:00 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png",
+            logoColor = 0xFFD32F2FL
+        ),
+        Restaurant(
+            id = "la_toscana_rapido",
+            name = "La Toscana - Rápido",
+            category = "COMIDA_RAPIDA",
+            rating = 4.6,
+            deliveryTime = "25-35 min",
+            deliveryFee = 6.0,
+            minOrder = 20.0,
+            phone = "73939626",
+            address = "Calle La Paz esq. 18 de Noviembre",
+            schedule = "Lun-Dom: 11:30 - 22:00",
+            logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana2.png",
+            logoColor = 0xFFBA68C8L
+        )
+    )
+
+    // ==================== FUNCIONES DE CARRITO INTERACTIVO ====================
+    fun addItemToTempOrder(restaurant: Restaurant, productName: String, quantity: Int) {
+        if (productName.isBlank() || quantity < 1) return
+        tempOrderItems = tempOrderItems + TempOrderItem(
+            restaurantId = restaurant.id,
+            restaurantName = restaurant.name,
+            productName = productName.trim().uppercase(),
+            quantity = quantity
+        )
+    }
+
+    fun removeTempItem(itemId: String) {
+        tempOrderItems = tempOrderItems.filter { it.id != itemId }
+    }
+
+    fun updateTempItemQuantity(itemId: String, newQuantity: Int) {
+        if (newQuantity < 1) {
+            removeTempItem(itemId)
+            return
+        }
+        tempOrderItems = tempOrderItems.map {
+            if (it.id == itemId) it.copy(quantity = newQuantity) else it
+        }
+    }
+
+    fun clearTempOrder() {
+        tempOrderItems = emptyList()
+    }
+
+    fun confirmTempOrderAndCreate() {
+        if (tempOrderItems.isEmpty()) return
+
+        val grouped = tempOrderItems.groupBy { it.restaurantName }
+        val description = buildString {
+            grouped.forEach { (restName, items) ->
+                appendLine("RESTAURANTE: $restName")
+                items.forEach { item ->
+                    appendLine("- ${item.productName} x${item.quantity}")
+                }
+            }
+            appendLine("TOTAL PLATOS: ${tempOrderItems.sumOf { it.quantity }}")
+        }
+
+        createOrder(
+            category = "COMIDA",
+            description = description.trim(),
+            destinationLocation = currentUserLocation ?: clientUser?.location ?: MyLatLng(-14.8336, -64.9000)
+        )
+
+        clearTempOrder()
+        showSummaryDialog = false
+    }
+
     init {
         checkUserSession()
         observeAvailableDeliveries()

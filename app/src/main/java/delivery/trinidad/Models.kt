@@ -87,3 +87,36 @@ data class Order(
     val targetDeliveryId: String? = null,
     val rejectedBy: List<String> = emptyList()
 )
+
+@Serializable
+data class TempOrderItem(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val restaurantId: String,
+    val restaurantName: String,
+    val productName: String,
+    val quantity: Int = 1
+)
+
+@Serializable
+data class Restaurant(
+    val id: String,
+    val name: String,
+    val category: String,
+    val rating: Double = 4.5,
+    val deliveryTime: String = "25-35 min",
+    val deliveryFee: Double = 5.0,
+    val minOrder: Double = 15.0,
+    val phone: String,
+    val address: String,
+    val schedule: String,
+    val logoUrl: String? = null,
+    val logoColor: Long = 0xFFD32F2F // Usamos Long para color hexadecimal en lugar de Compose Color en el modelo serializable
+)
+
+@Serializable
+data class QuoteRow(
+    val restaurant: String,
+    val item: String,
+    val quantity: Int,
+    var unitPrice: String = ""
+)
