@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss()
     ],
-    // GitHub Pages sirve este repo en minúsculas independientemente del nombre del repo
-    base: '/delivery-rapidingo/',
+    // GitHub Pages sirve este repo con el slug publico del repositorio
+    base: '/delivery-rapidingo-v1/',
     define: {
       'process.env': JSON.stringify(env),
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.SUPABASE_URL || env.VITE_SUPABASE_URL),

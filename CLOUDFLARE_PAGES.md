@@ -21,7 +21,7 @@ Crea dos proyectos en Cloudflare Pages usando el mismo repositorio de GitHub.
 ### Proyecto Cliente
 
 - Project name: `rapidingo-cliente`
-- Repository: `eduvc71-code/Delivery_Rapidingo`
+- Repository: `eduvc71-code/delivery-rapidingo-v1`
 - Production branch: `main`
 - Build command: `npm run build:pwas`
 - Build output directory: `dist/cliente`
@@ -37,7 +37,7 @@ https://rapidingo-cliente.pages.dev
 ### Proyecto Delivery
 
 - Project name: `rapidingo-delivery`
-- Repository: `eduvc71-code/Delivery_Rapidingo`
+- Repository: `eduvc71-code/delivery-rapidingo-v1`
 - Production branch: `main`
 - Build command: `npm run build:pwas`
 - Build output directory: `dist/delivery`

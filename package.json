@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://eduvc71-code.github.io/Delivery_Rapidingo",
+  "homepage": "https://eduvc71-code.github.io/delivery-rapidingo-v1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

@@ -66,6 +66,7 @@ for (const app of apps) {
   index = index
     .replaceAll('/Delivery_Rapidingo/', './')
     .replaceAll('/delivery-rapidingo/', './')
+    .replaceAll('/delivery-rapidingo-v1/', './')
     .replace(
       /var role = new URLSearchParams\(window\.location\.search\)\.get\('role'\);/,
       `var role = '${app.role}';`

@@ -59,6 +59,7 @@ foreach ($app in $apps) {
   $index = Get-Content -LiteralPath $indexPath -Raw
   $index = $index -replace "/Delivery_Rapidingo/", "./"
   $index = $index -replace "/delivery-rapidingo/", "./"
+  $index = $index -replace "/delivery-rapidingo-v1/", "./"
   $index = $index -replace '<link rel="manifest" href="\./manifest\.json" id="app-manifest">', '<link rel="manifest" href="./manifest.json" id="app-manifest">'
   $index = $index -replace "var role = new URLSearchParams\(window\.location\.search\)\.get\('role'\);", "var role = '$($app.Role)';"
   $index = $index -replace "window\.__RAPIDINGO_ROLE = role \|\| '';", "window.__RAPIDINGO_ROLE = '$($app.Role)';"
