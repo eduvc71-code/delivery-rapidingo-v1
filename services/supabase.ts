@@ -298,6 +298,41 @@ export const SupabasePwaApi = {
     });
   },
 
+  async claimOrderForPricing(order: Order, deliveryUser: User): Promise<Order | null> {
+    const rows = await request<SupabaseOrderRow[]>(
+      `/rest/v1/orders?id=eq.${encodeURIComponent(order.id)}&status=eq.${OrderStatus.PENDING_PRICE}&delivery_id=is.null&or=(target_delivery_id.is.null,target_delivery_id.eq.${encodeURIComponent(deliveryUser.id)})`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(orderToRow({
+          ...order,
+          deliveryId: deliveryUser.id,
+          deliveryName: deliveryUser.name,
+          deliveryPhone: deliveryUser.phone,
+        }, null, deliveryUser)),
+      }
+    );
+
+    return rows[0] ? rowToOrder(rows[0]) : null;
+  },
+
+  async reassignOrderAfterRejection(order: Order, rejectedDeliveryId: string, nextDelivery: User | null) {
+    const rejectedBy = Array.from(new Set([...(order.rejectedBy || []), rejectedDeliveryId]));
+    await request(`/rest/v1/orders?id=eq.${encodeURIComponent(order.id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        rejected_by: rejectedBy,
+        target_delivery_id: nextDelivery?.id || null,
+        delivery_id: null,
+        delivery_name: nextDelivery?.name || null,
+        delivery_phone: nextDelivery?.phone || null,
+        delivery_location: null,
+        delivery_path: [],
+        status: OrderStatus.PENDING_PRICE,
+      }),
+    });
+  },
+
   async finalizeCompletedOrder(order: Order, clientUser?: User | null, deliveryUser?: User | null) {
     const cleanOrder = { ...order, status: OrderStatus.COMPLETED, chatHistory: [] };
 

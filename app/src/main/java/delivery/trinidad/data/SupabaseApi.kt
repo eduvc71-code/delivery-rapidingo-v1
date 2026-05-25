@@ -82,6 +82,16 @@ object SupabaseApi {
         request("PATCH", "/rest/v1/orders?id=eq.$id", values)
     }
 
+    suspend fun claimOrderForBidding(orderId: String, deliveryId: String, values: JSONObject): Boolean {
+        val response = request(
+            method = "PATCH",
+            path = "/rest/v1/orders?id=eq.$orderId&status=eq.${OrderStatus.PENDING_PRICE.name}&delivery_id=is.null&or=(target_delivery_id.is.null,target_delivery_id.eq.$deliveryId)",
+            body = values,
+            prefer = "return=representation"
+        )
+        return JSONArray(response).length() > 0
+    }
+
     suspend fun deleteOrder(id: String) {
         request("DELETE", "/rest/v1/orders?id=eq.$id")
     }

@@ -84,6 +84,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Trinidad Centro",
             schedule = "Lun-Dom: 12:00 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/wings_drinks.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/wings_drinks.png",
             logoColor = 0xFFFF5722L
         ),
         Restaurant(
@@ -98,6 +99,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "C/ Macheteros #284",
             schedule = "Lun-Dom: 12:00 - 23:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_brete.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_brete.png",
             logoColor = 0xFFE91E63L
         ),
         Restaurant(
@@ -112,6 +114,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana.png",
             logoColor = 0xFF9C27B0L
         ),
         Restaurant(
@@ -126,6 +129,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana1.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana1.png",
             logoColor = 0xFF673AB7L
         ),
         Restaurant(
@@ -140,6 +144,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle 9 de Abril, diagonal parroquia Fatima",
             schedule = "Lun-Dom: 12:00 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_plazuela.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_plazuela.png",
             logoColor = 0xFF795548L
         ),
         Restaurant(
@@ -154,6 +159,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle Sucre esquina 9 de Abril",
             schedule = "Mar-Dom: 19:00 - 23:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_coqueta.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_coqueta.png",
             logoColor = 0xFFE91E63L
         ),
         Restaurant(
@@ -168,6 +174,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle Santa Cruz esq. Av. del Mar",
             schedule = "Lun-Dom: 12:00 - 23:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/mr_grill.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/mr_grill.png",
             logoColor = 0xFFFF5722L
         ),
         Restaurant(
@@ -182,6 +189,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Av. del Mar frente a la Plaza Ganadera",
             schedule = "19:00 - 12:30",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_benianito.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_benianito.png",
             logoColor = 0xFF3F51B5L
         ),
         Restaurant(
@@ -196,6 +204,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Trinidad Centro",
             schedule = "Lun-Dom: 12:00 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png",
             logoColor = 0xFFD32F2FL
         ),
         Restaurant(
@@ -210,6 +219,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
             logoUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana2.png",
+            menuUrl = "https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana2.png",
             logoColor = 0xFFBA68C8L
         )
     )
@@ -396,7 +406,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     SupabaseApi.getDeliveryUsers()
                 }.onSuccess { users ->
                     allDeliveryUsers = users
-                    availableDeliveriesCount = users.count { it.isOnline }
+                    availableDeliveriesCount = users.count { it.isOnline && hasValidDispatchLocation(it.location) }
                 }.onFailure {
                     Log.e("Rapidingo", "Error observando repartidores Supabase: ${it.message}")
                 }
@@ -759,29 +769,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val client = clientUser ?: return
         val orderId = System.currentTimeMillis().toString()
         val clientLocation = currentUserLocation ?: client.location ?: trinidadCenter
-        val availableDeliveries = allDeliveryUsers
-            .filter { it.isOnline && it.role == UserRole.DELIVERY }
-            .sortedBy { calculateDistance(destinationLocation, it.location ?: trinidadCenter) }
-
-        val order = Order(
-            id = orderId,
-            clientId = client.id,
-            clientName = client.name,
-            clientPhone = client.phone,
-            category = category,
-            description = description.uppercase(),
-            status = OrderStatus.PENDING_PRICE,
-            createdAt = System.currentTimeMillis(),
-            clientLocation = clientLocation,
-            destinationLocation = destinationLocation,
-            targetDeliveryId = availableDeliveries.firstOrNull()?.id
-        )
 
         viewModelScope.launch {
             runCatching {
+                val orders = SupabaseApi.getOrders()
+                val targetDelivery = selectTargetDelivery(destinationLocation, orders)
+                val order = Order(
+                    id = orderId,
+                    clientId = client.id,
+                    clientName = client.name,
+                    clientPhone = client.phone,
+                    category = category,
+                    description = description.uppercase(),
+                    status = OrderStatus.PENDING_PRICE,
+                    createdAt = System.currentTimeMillis(),
+                    clientLocation = clientLocation,
+                    destinationLocation = destinationLocation,
+                    targetDeliveryId = targetDelivery?.id
+                )
                 SupabaseApi.upsertOrder(order)
+                order
             }.onSuccess {
-                activeOrder = order
+                activeOrder = it
                 prefs.edit { putString("active_order_id", orderId) }
                 lastStatus = OrderStatus.PENDING_PRICE
                 lastChatSize = 0
@@ -805,7 +814,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             runCatching {
-                SupabaseApi.updateOrder(orderId, updates)
+                val claimed = SupabaseApi.claimOrderForBidding(orderId, deliveryId, updates)
+                if (!claimed) error("Pedido ya tomado por otro repartidor")
             }.onSuccess {
                 prefs.edit { putString("active_order_id", orderId) }
                 lastStatus = OrderStatus.BIDDING
@@ -870,10 +880,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun rejectOrder() {
         val order = activeOrder ?: return
+        val deliveryId = prefs.getString("user_id", null) ?: return
         viewModelScope.launch {
             runCatching {
-                deleteOrderMedia(order)
-                SupabaseApi.deleteOrder(order.id)
+                val orders = SupabaseApi.getOrders()
+                val rejectedBy = (order.rejectedBy + deliveryId).distinct()
+                val nextDelivery = selectTargetDelivery(order.destinationLocation ?: order.clientLocation ?: trinidadCenter, orders, rejectedBy)
+                SupabaseApi.updateOrder(
+                    order.id,
+                    JSONObject()
+                        .put("rejected_by", JSONArray(rejectedBy))
+                        .putNullable("target_delivery_id", nextDelivery?.id)
+                        .putNullable("delivery_id", null)
+                        .putNullable("delivery_name", nextDelivery?.name)
+                        .putNullable("delivery_phone", nextDelivery?.phone)
+                        .putNullable("delivery_location", null)
+                        .put("delivery_path", JSONArray())
+                        .put("status", OrderStatus.PENDING_PRICE.name)
+                )
             }.onSuccess {
                 activeOrder = null
                 prefs.edit { remove("active_order_id") }
@@ -1035,6 +1059,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             kotlin.math.sin(deltaLambda / 2) * kotlin.math.sin(deltaLambda / 2)
         val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
         return r * c
+    }
+
+    private fun hasValidDispatchLocation(location: MyLatLng?): Boolean {
+        return location != null && (location.latitude != 0.0 || location.longitude != 0.0)
+    }
+
+    private fun isActiveDispatchOrder(order: Order): Boolean {
+        return order.status != OrderStatus.COMPLETED && order.status != OrderStatus.CANCELLED
+    }
+
+    private fun availableDeliveryCandidates(
+        destinationLocation: MyLatLng,
+        orders: List<Order>,
+        rejectedBy: List<String> = emptyList()
+    ): List<User> {
+        val busyDeliveryIds = orders
+            .filter { isActiveDispatchOrder(it) }
+            .flatMap { listOfNotNull(it.deliveryId, it.targetDeliveryId) }
+            .toSet()
+
+        return allDeliveryUsers
+            .filter {
+                it.role == UserRole.DELIVERY &&
+                    it.isOnline &&
+                    hasValidDispatchLocation(it.location) &&
+                    !busyDeliveryIds.contains(it.id) &&
+                    !rejectedBy.contains(it.id)
+            }
+            .sortedBy { calculateDistance(destinationLocation, it.location!!) }
+    }
+
+    private fun selectTargetDelivery(
+        destinationLocation: MyLatLng,
+        orders: List<Order>,
+        rejectedBy: List<String> = emptyList()
+    ): User? {
+        return availableDeliveryCandidates(destinationLocation, orders, rejectedBy)
+            .take(3)
+            .randomOrNull()
     }
 
     private fun MyLatLng.toJson(): JSONObject = JSONObject()

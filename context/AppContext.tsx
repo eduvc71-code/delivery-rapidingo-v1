@@ -18,6 +18,7 @@ interface AppContextType {
   login: (user: User) => void;
   registerUser: (user: User) => void;
   updateCurrentUserPhone: (phone: string) => void;
+  updateCurrentUserLocation: (location: { lat: number; lng: number }) => void;
   logout: () => boolean;
   resetSimulation: () => void;
   selectAppMode: (role: UserRole | null) => void;
@@ -31,6 +32,58 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+const hasValidGps = (location?: { lat: number; lng: number }) =>
+  Boolean(location && (location.lat !== 0 || location.lng !== 0));
+
+const isActiveDispatchOrder = (order: Order) =>
+  order.status !== OrderStatus.COMPLETED && order.status !== OrderStatus.CANCELLED;
+
+const distanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const radius = 6371e3;
+  const phi1 = a.lat * Math.PI / 180;
+  const phi2 = b.lat * Math.PI / 180;
+  const deltaPhi = (b.lat - a.lat) * Math.PI / 180;
+  const deltaLambda = (b.lng - a.lng) * Math.PI / 180;
+  const h = Math.sin(deltaPhi / 2) ** 2 +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
+  return radius * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
+const getAvailableDeliveryCandidates = (
+  destination: { lat: number; lng: number },
+  deliveryUsers: User[],
+  orders: Order[],
+  rejectedBy: string[] = []
+) => {
+  const busyDeliveryIds = new Set(
+    orders
+      .filter(isActiveDispatchOrder)
+      .flatMap((order) => [order.deliveryId, order.targetDeliveryId].filter(Boolean) as string[])
+  );
+
+  return deliveryUsers
+    .filter((user) =>
+      user.role === UserRole.DELIVERY &&
+      user.isOnline &&
+      hasValidGps(user.location) &&
+      !busyDeliveryIds.has(user.id) &&
+      !rejectedBy.includes(user.id)
+    )
+    .sort((a, b) => distanceMeters(destination, a.location!) - distanceMeters(destination, b.location!));
+};
+
+const selectTargetDelivery = (
+  destination: { lat: number; lng: number },
+  deliveryUsers: User[],
+  orders: Order[],
+  rejectedBy: string[] = []
+) => {
+  const nearestPool = getAvailableDeliveryCandidates(destination, deliveryUsers, orders, rejectedBy).slice(0, 3);
+  return nearestPool.length > 0
+    ? nearestPool[Math.floor(Math.random() * nearestPool.length)]
+    : null;
+};
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -73,8 +126,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             : "LO SENTIMOS EL PEDIDO FUE CANCELADO";
         } else {
           msg = appMode === UserRole.CLIENT
-            ? "ENTREGA EXITOSA GRACIAS POR TU CONFIANZA"
-            : "PEDIDO COMPLETADO GRACIAS POR EL SERVICIO";
+            ? "ENTREGA EXITOSA\nGRACIAS POR TU CONFIANZA"
+            : "PEDIDO COMPLETADO\nGRACIAS POR EL SERVICIO";
         }
         setThankYouDialogMessage(msg);
         setShowThankYouDialog(true);
@@ -114,6 +167,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, []);
 
+  useEffect(() => {
+    if (appMode !== UserRole.DELIVERY || !deliveryUser) return;
+    if (deliveryUser.isOnline) {
+      SupabasePwaApi.upsertUser(deliveryUser).catch((error) => {
+        console.error('No se pudo sincronizar delivery online:', error);
+      });
+      return;
+    }
+
+    const onlineUser = { ...deliveryUser, isOnline: true };
+    setDeliveryUser(onlineUser);
+    SupabasePwaApi.upsertUser(onlineUser)
+      .then(() => SupabasePwaApi.setUserOnline(onlineUser.id, true))
+      .catch((error) => {
+        console.error('No se pudo marcar delivery online:', error);
+      });
+  }, [appMode, deliveryUser?.id]);
+
   // Supabase es la base comun para PWA y APK. Firebase queda solo para Gmail.
   useEffect(() => {
     const user = appMode === UserRole.DELIVERY ? deliveryUser : clientUser;
@@ -129,7 +200,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ]);
         if (cancelled) return;
 
-        const onlineDeliveries = deliveryUsers.filter((delivery) => delivery.isOnline);
+        const onlineDeliveries = getAvailableDeliveryCandidates(
+          user.location || { lat: 0, lng: 0 },
+          deliveryUsers,
+          orders
+        );
         setAvailableDeliveries(onlineDeliveries);
 
         const nextOrder = appMode === UserRole.CLIENT
@@ -236,18 +311,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           return;
         }
 
-        if (userToSave.role === UserRole.CLIENT) setClientUser(userToSave);
-        else {
-          setDeliveryUser(userToSave);
+        await SupabasePwaApi.upsertUser(userToSave);
+        if (userToSave.role === UserRole.DELIVERY) {
           await SupabasePwaApi.setUserOnline(userToSave.id, true);
         }
-        setAppMode(userToSave.role);
 
-        await SupabasePwaApi.upsertUser(userToSave);
+        if (userToSave.role === UserRole.CLIENT) setClientUser(userToSave);
+        else setDeliveryUser({ ...userToSave, isOnline: true });
+        setAppMode(userToSave.role);
       })
       .catch((error) => {
         console.error('No se pudo registrar el usuario en Supabase:', error);
         alert('No se pudo guardar o recuperar el usuario en Supabase. Revisa la conexion y las llaves de Supabase.');
+      });
+  };
+
+  const updateCurrentUserLocation = (location: { lat: number; lng: number }) => {
+    if (!appMode) return;
+    const current = appMode === UserRole.CLIENT ? clientUser : deliveryUser;
+    if (!current) return;
+
+    const updatedUser = {
+      ...current,
+      location,
+      isOnline: appMode === UserRole.DELIVERY ? true : current.isOnline,
+    };
+
+    if (appMode === UserRole.CLIENT) setClientUser(updatedUser);
+    else setDeliveryUser(updatedUser);
+
+    SupabasePwaApi.upsertUser(updatedUser)
+      .then(() => {
+        if (appMode === UserRole.DELIVERY) {
+          return SupabasePwaApi.setUserOnline(updatedUser.id, true);
+        }
+        return undefined;
+      })
+      .catch((error) => {
+        console.error('No se pudo guardar la ubicacion GPS:', error);
+        alert('No se pudo guardar tu ubicacion. Revisa internet y permisos de GPS.');
       });
   };
 
@@ -313,10 +415,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!clientUser) return;
 
     try {
-      const deliveryUsers = await SupabasePwaApi.getDeliveryUsers();
-      const onlineDeliveries = deliveryUsers.filter((user) => user.role === UserRole.DELIVERY && user.isOnline);
+      const [deliveryUsers, orders] = await Promise.all([
+        SupabasePwaApi.getDeliveryUsers(),
+        SupabasePwaApi.getOrders(),
+      ]);
+      const destination = order.destinationLocation || order.location;
+      const onlineDeliveries = getAvailableDeliveryCandidates(destination, deliveryUsers, orders);
       setAvailableDeliveries(onlineDeliveries);
-      const targetDelivery = onlineDeliveries[0] || null;
+      const targetDelivery = selectTargetDelivery(destination, deliveryUsers, orders);
       const targetDeliveryId = targetDelivery?.id || null;
 
       const assignedOrder = {
@@ -342,6 +448,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const isCancelled = updatedOrder.status === OrderStatus.CANCELLED;
 
     try {
+      if (
+        appMode === UserRole.DELIVERY &&
+        deliveryUser &&
+        activeOrder?.id === updatedOrder.id &&
+        activeOrder.status === OrderStatus.PENDING_PRICE &&
+        updatedOrder.status === OrderStatus.WAITING_CONFIRM
+      ) {
+        const claimedOrder = await SupabasePwaApi.claimOrderForPricing(updatedOrder, deliveryUser);
+        if (!claimedOrder) {
+          alert('Este pedido ya fue tomado por otro repartidor.');
+          setActiveOrder(null);
+          return;
+        }
+        setActiveOrder(claimedOrder);
+        return;
+      }
+
+      if (
+        isCancelled &&
+        appMode === UserRole.DELIVERY &&
+        deliveryUser &&
+        activeOrder?.id === updatedOrder.id &&
+        activeOrder.status === OrderStatus.PENDING_PRICE
+      ) {
+        const [deliveryUsers, orders] = await Promise.all([
+          SupabasePwaApi.getDeliveryUsers(),
+          SupabasePwaApi.getOrders(),
+        ]);
+        const rejectedBy = Array.from(new Set([...(activeOrder.rejectedBy || []), deliveryUser.id]));
+        const destination = activeOrder.destinationLocation || activeOrder.location;
+        const nextDelivery = selectTargetDelivery(destination, deliveryUsers, orders, rejectedBy);
+        await SupabasePwaApi.reassignOrderAfterRejection(activeOrder, deliveryUser.id, nextDelivery);
+        setActiveOrder(null);
+        return;
+      }
+
       if (isCompleted || isCancelled) {
         // 1. Si está completado, guardar un resumen en el historial local
         if (isCompleted) {
@@ -398,7 +540,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       clientUser, deliveryUser, currentUser, appMode, activeOrder, pastOrders,
       assignedDelivery, availableDeliveries, isCheckingSession,
       login, registerUser, logout, resetSimulation, selectAppMode, createOrder,
-      updateOrder, addChatMessage, switchRole, updateCurrentUserPhone,
+      updateOrder, addChatMessage, switchRole, updateCurrentUserPhone, updateCurrentUserLocation,
       showThankYouDialog, thankYouDialogMessage, setShowThankYouDialog
     }}>
       {children}
