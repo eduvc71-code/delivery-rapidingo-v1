@@ -8,15 +8,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Rapidingo">
-    <title>DELIVERY RAPIDINGO</title>
+    <title>Rapidingo Delivery</title>
     <link rel="icon" href="data:,">
     <link rel="manifest" href="./manifest.json" id="app-manifest">
     <link rel="apple-touch-icon" href="./icons/icon-192.png" id="apple-touch-icon">
     <script>
       (function () {
-        var role = new URLSearchParams(window.location.search).get('role');
+        var role = 'delivery';
         var path = window.location.pathname.toLowerCase();
-        if (!role && (path.endsWith('/delivery-rapidingo-v1/') || path.endsWith('/delivery-rapidingo-v1/index.html'))) {
+        if (!role && (path.endsWith('./') || path.endsWith('./index.html'))) {
           var rootPath = window.location.pathname.replace(/index\.html$/i, '');
           if (!rootPath.endsWith('/')) rootPath += '/';
           window.location.replace(rootPath + '?role=cliente' + window.location.hash);
@@ -24,19 +24,19 @@
         }
         if (!role && (path.indexOf('/cliente/') !== -1 || path.indexOf('/client/') !== -1)) role = 'client';
         if (!role && path.indexOf('/delivery/') !== -1) role = 'delivery';
-        window.__RAPIDINGO_ROLE = role || '';
+        window.__RAPIDINGO_ROLE = 'delivery';
         var manifest = './manifest.json';
         var icon = './icons/icon-192.png';
         var title = 'Rapidingo';
         var theme = '#e50914';
 
         if (role === 'client') {
-          manifest = './manifest-client.json';
+          manifest = './manifest.json';
           icon = './icons/client-192.png';
           title = 'Rapidingo Cliente';
           theme = '#e50914';
         } else if (role === 'delivery') {
-          manifest = './manifest-delivery.json';
+          manifest = './manifest.json';
           icon = './icons/delivery-192.png';
           title = 'Rapidingo Delivery';
           theme = '#e50914';
