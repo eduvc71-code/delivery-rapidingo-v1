@@ -128,20 +128,11 @@ const GpsRequiredGate: React.FC<{ role: UserRole; onLocation: (location: { lat: 
 const PwaApp: React.FC = () => {
   const { appMode, clientUser, deliveryUser, registerUser, selectAppMode, isCheckingSession, updateCurrentUserLocation } = useApp();
   const forcedRole = getUrlRole();
-
-  // Si tenemos un usuario guardado pero no tenemos modo seleccionado (root), auto-seleccionamos
-  useEffect(() => {
-    if (!forcedRole && !appMode) {
-      if (clientUser) selectAppMode(UserRole.CLIENT);
-      else if (deliveryUser) selectAppMode(UserRole.DELIVERY);
-    }
-  }, [forcedRole, appMode, clientUser, deliveryUser, selectAppMode]);
-
-  const activeRole = forcedRole || appMode || UserRole.CLIENT;
+  const activeRole = forcedRole || UserRole.CLIENT;
 
   useEffect(() => {
-    if (forcedRole && forcedRole !== appMode) selectAppMode(forcedRole);
-  }, [forcedRole, appMode, selectAppMode]);
+    if (activeRole !== appMode) selectAppMode(activeRole);
+  }, [activeRole, appMode, selectAppMode]);
 
   const goHome = () => {
     selectAppMode(null);

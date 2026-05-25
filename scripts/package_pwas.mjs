@@ -22,7 +22,7 @@ const apps = [
     folder: 'cliente',
     role: 'client',
     name: 'Rapidingo Cliente',
-    theme: '#e50914',
+    theme: '#FFC107',
     manifestSource: 'manifest-client.json',
     icon192: 'client-192.png',
     icon512: 'client-512.png'
@@ -31,7 +31,7 @@ const apps = [
     folder: 'delivery',
     role: 'delivery',
     name: 'Rapidingo Delivery',
-    theme: '#e50914',
+    theme: '#FFC107',
     manifestSource: 'manifest-delivery.json',
     icon192: 'delivery-192.png',
     icon512: 'delivery-512.png'

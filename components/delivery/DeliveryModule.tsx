@@ -230,10 +230,10 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
           <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3 text-white min-w-0">
                   <div className="w-12 h-12 bg-brand-orange text-white rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,106,0,0.4)] border border-white/10">
-                    <Bike size={24} className="animate-bounce-subtle" />
+                    <img src="assets/brand/rapidingo-logo.png" alt="Rapidingo" className="w-12 h-12 rounded-xl object-cover" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-[20px] leading-6 font-black font-montserrat uppercase tracking-tight truncate">Soy Rapidingo</h2>
+                    <h2 className="text-[20px] leading-6 font-black font-montserrat uppercase tracking-tight truncate">RAPIDINGO</h2>
                     <p className="text-xs leading-5 font-bold text-brand-yellow uppercase tracking-[2px] font-teko italic truncate">{deliveryUser.name}</p>
                   </div>
               </div>

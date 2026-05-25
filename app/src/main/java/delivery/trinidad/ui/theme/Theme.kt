@@ -13,37 +13,38 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = RapidingoOrange,
-    onPrimary = RapidingoInk,
+    onPrimary = Color.White,
     primaryContainer = RapidingoRedDark,
     onPrimaryContainer = Color.White,
-    secondary = RapidingoRedLight,
+    secondary = RapidingoYellow,
     onSecondary = RapidingoInk,
     tertiary = RapidingoOrangeLight,
     background = RapidingoInk,
     onBackground = Color.White,
-    surface = Color(0xFF211B18),
+    surface = Color(0xFF171717),
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF342822),
-    onSurfaceVariant = Color(0xFFFFE8DD)
+    surfaceVariant = Color(0xFF232323),
+    onSurfaceVariant = Color(0xFFE5E5E5),
+    outline = Color(0x33FF6A00)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = RapidingoRed,
+    primary = RapidingoOrange,
     onPrimary = Color.White,
-    primaryContainer = RapidingoOrangeSoft,
+    primaryContainer = Color(0xFF23180F),
     onPrimaryContainer = RapidingoInk,
-    secondary = RapidingoOrange,
-    onSecondary = Color.White,
+    secondary = RapidingoYellow,
+    onSecondary = RapidingoInk,
     secondaryContainer = RapidingoRedLight,
     onSecondaryContainer = RapidingoInk,
     tertiary = RapidingoSuccess,
     background = RapidingoSurface,
-    onBackground = RapidingoInk,
-    surface = Color.White,
-    onSurface = RapidingoInk,
-    surfaceVariant = Color(0xFFFFF1E8),
-    onSurfaceVariant = RapidingoMuted,
-    outline = Color(0xFFE7D7CE)
+    onBackground = Color.White,
+    surface = Color(0xFF171717),
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF232323),
+    onSurfaceVariant = Color(0xFFE5E5E5),
+    outline = Color(0x33FF6A00)
 )
 
 @Composable

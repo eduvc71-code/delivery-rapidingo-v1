@@ -244,13 +244,11 @@ export const Register: React.FC<RegisterProps> = ({ role, onRegister }) => {
             />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-orange font-teko italic">DELIVERY</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-orange font-teko italic">{roleLabel.toUpperCase()}</p>
             <h1 className="text-[34px] leading-8 font-black tracking-tighter text-white font-montserrat">
               RAPIDINGO
             </h1>
-            <p className="mt-1 text-[11px] font-bold text-gray-400 font-teko uppercase tracking-widest italic">
-              TU PEDIDO LLEGA RAPIDO.
-            </p>
+            <p className="mt-1 text-[11px] font-bold text-gray-400 font-teko uppercase tracking-widest italic">APP {roleLabel.toUpperCase()}</p>
           </div>
         </div>
 

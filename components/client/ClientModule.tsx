@@ -1268,10 +1268,10 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
           <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-brand-orange text-white rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,106,0,0.4)]">
-                    <UserIcon size={24} />
+                    <img src="assets/brand/rapidingo-logo.png" alt="Rapidingo" className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-[0_0_15px_rgba(255,193,7,0.35)] border border-white/10" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-[20px] leading-6 font-black text-white truncate">HOLA, {clientUser.name.toUpperCase()}!</h2>
+                    <h2 className="text-[20px] leading-6 font-black text-white truncate font-montserrat">HOLA, {clientUser.name.toUpperCase()}!</h2>
                     <p className="text-xs font-bold text-brand-yellow uppercase tracking-[2px] font-teko italic">¿Qué te llevamos hoy?</p>
                   </div>
               </div>

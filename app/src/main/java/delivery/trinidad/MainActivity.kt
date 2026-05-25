@@ -135,6 +135,158 @@ private fun openWhatsAppMessage(context: Context, phone: String?, message: Strin
     }
 }
 
+private val ApkBrandBlack = Color(0xFF111111)
+private val ApkBrandPanel = Color(0xFF171717)
+private val ApkBrandPanelSoft = Color(0xFF202020)
+private val ApkBrandOrange = Color(0xFFFF6A00)
+private val ApkBrandYellow = Color(0xFFFFC107)
+private val ApkBrandMuted = Color(0xFF8B8B8B)
+private val ApkBrandBorder = Color(0x33FF6A00)
+private val ApkBrandField = Color(0xFF151515)
+private val ApkBrandSuccess = Color(0xFF2E7D32)
+
+@Composable
+private fun RapidingoBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(ApkBrandBlack, Color(0xFF16110D), ApkBrandBlack)
+                )
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(ApkBrandOrange.copy(alpha = 0.035f))
+        )
+        content()
+    }
+}
+
+@Composable
+private fun RapidingoCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        color = ApkBrandPanel.copy(alpha = 0.96f),
+        contentColor = Color.White,
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, ApkBrandBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp), content = content)
+    }
+}
+
+@Composable
+private fun RapidingoPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    containerColor: Color = ApkBrandOrange,
+    contentColor: Color = Color.White,
+    icon: @Composable (() -> Unit)? = null
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.height(60.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = Color(0xFF2A2A2A),
+            disabledContentColor = Color(0xFF686868)
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
+        shape = RoundedCornerShape(22.dp),
+        contentPadding = PaddingValues(horizontal = 18.dp)
+    ) {
+        if (icon != null) {
+            icon()
+            Spacer(Modifier.width(10.dp))
+        }
+        Text(text, fontWeight = FontWeight.Black, fontSize = 15.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun RapidingoHeader(
+    title: String,
+    subtitle: String,
+    icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = ApkBrandPanel.copy(alpha = 0.96f),
+        contentColor = Color.White,
+        tonalElevation = 0.dp,
+        shadowElevation = 10.dp,
+        border = BorderStroke(1.dp, ApkBrandBorder)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                color = ApkBrandOrange,
+                shape = RoundedCornerShape(14.dp),
+                shadowElevation = 8.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) { icon() }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 20.sp,
+                    lineHeight = 23.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    subtitle,
+                    fontSize = 12.sp,
+                    lineHeight = 15.sp,
+                    fontWeight = FontWeight.Black,
+                    color = ApkBrandYellow,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), content = actions)
+        }
+    }
+}
+
+@Composable
+private fun rapidingoTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.White,
+    unfocusedTextColor = Color.White,
+    focusedBorderColor = ApkBrandOrange,
+    unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+    focusedLabelColor = ApkBrandOrange,
+    unfocusedLabelColor = ApkBrandMuted,
+    cursorColor = ApkBrandOrange,
+    focusedContainerColor = ApkBrandField,
+    unfocusedContainerColor = ApkBrandField,
+    focusedPlaceholderColor = ApkBrandMuted,
+    unfocusedPlaceholderColor = ApkBrandMuted
+)
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -320,7 +472,6 @@ fun ThankYouDialog(viewModel: MainViewModel) {
 
 @Composable
 fun WelcomeAndRegister(viewModel: MainViewModel) {
-    val selectedRole = remember { mutableStateOf<UserRole?>(null) }
     val activity = (LocalContext.current as? ComponentActivity)
     val forcedRole = viewModel.forcedRole
 
@@ -329,51 +480,40 @@ fun WelcomeAndRegister(viewModel: MainViewModel) {
         return
     }
 
-    if (selectedRole.value == null) {
+    RapidingoBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFFD32F2F), Color(0xFFB71C1C))))
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.FlashOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(100.dp))
-            Text("¡GRACIAS POR SER PARTE DE RAPIDINGO DELIVERY!", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("CLIENTES PIDEN EN TRINIDAD. DELIVERY ES PARA EL EQUIPO INTERNO.", color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(64.dp))
-            
-            Button(
-                onClick = { 
-                    selectedRole.value = UserRole.CLIENT 
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(30.dp),
-                enabled = viewModel.clientUser == null && viewModel.deliveryUser == null
+            Surface(
+                color = ApkBrandOrange.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(28.dp),
+                shadowElevation = 14.dp,
+                modifier = Modifier.size(104.dp),
+                border = BorderStroke(1.dp, ApkBrandBorder)
             ) {
-                Text("REGISTRARSE COMO CLIENTE", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Icon(Icons.Default.Warning, contentDescription = null, tint = ApkBrandOrange, modifier = Modifier.padding(24.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedButton(
-                onClick = { 
-                    selectedRole.value = UserRole.DELIVERY
-                },
-                border = BorderStroke(2.dp, Color.White),
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(30.dp),
-                enabled = viewModel.clientUser == null && viewModel.deliveryUser == null
-            ) {
-                Text("REPARTIDOR - EQUIPO INTERNO", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
+            Spacer(modifier = Modifier.height(26.dp))
+            Text("APP SIN ROL", fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                "Instala la APK Cliente o la APK Delivery. Esta version no tiene rol configurado.",
+                color = ApkBrandMuted,
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black
+            )
             Spacer(modifier = Modifier.height(32.dp))
-            TextButton(onClick = { activity?.finish() }) {
-                Text("SALIR DE LA APLICACIÓN", color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Medium)
-            }
+            RapidingoPrimaryButton(
+                text = "CERRAR APLICACION",
+                onClick = { activity?.finish() },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
-    } else {
-        RegisterScreen(viewModel, selectedRole.value!!)
     }
 }
 
@@ -427,7 +567,7 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F2))
+            .background(Brush.verticalGradient(listOf(ApkBrandBlack, Color(0xFF16110D), ApkBrandBlack)))
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Center
@@ -435,16 +575,16 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
-            color = Color.White,
-            shadowElevation = 10.dp,
-            border = BorderStroke(1.dp, Color(0xFFEDEDED))
+            color = ApkBrandPanel,
+            shadowElevation = 14.dp,
+            border = BorderStroke(1.dp, ApkBrandBorder)
         ) {
             Column(modifier = Modifier.padding(22.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         modifier = Modifier.size(62.dp),
                         shape = RoundedCornerShape(22.dp),
-                        color = Color.White,
+                        color = ApkBrandPanelSoft,
                         shadowElevation = 8.dp
                     ) {
                         Image(
@@ -456,9 +596,9 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("DELIVERY", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFFE50914), letterSpacing = 3.sp)
-                        Text("Rapidingo", fontSize = 30.sp, lineHeight = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFF0D1321))
-                        Text("Tu pedido llega rapido.", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1321))
+                        Text(if (role == UserRole.CLIENT) "CLIENTE" else "DELIVERY", fontSize = 12.sp, fontWeight = FontWeight.Black, color = ApkBrandOrange, letterSpacing = 3.sp)
+                        Text("Rapidingo", fontSize = 30.sp, lineHeight = 32.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        Text(if (role == UserRole.CLIENT) "APP CLIENTE" else "APP DELIVERY", fontSize = 14.sp, fontWeight = FontWeight.Black, color = ApkBrandYellow)
                     }
                 }
 
@@ -467,18 +607,18 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFE50914), modifier = Modifier.size(22.dp))
-                    Text("- - - - - -", color = Color(0xFFB8BDC8), fontWeight = FontWeight.Black)
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFFFFC107), modifier = Modifier.size(22.dp))
-                    Text("- - -", color = Color(0xFFB8BDC8), fontWeight = FontWeight.Black)
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF0D1321), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = ApkBrandOrange, modifier = Modifier.size(22.dp))
+                    Text("- - - - - -", color = Color.White.copy(alpha = 0.2f), fontWeight = FontWeight.Black)
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = ApkBrandYellow, modifier = Modifier.size(22.dp))
+                    Text("- - -", color = Color.White.copy(alpha = 0.2f), fontWeight = FontWeight.Black)
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(22.dp))
-        Text(if (role == UserRole.CLIENT) "Registro Cliente" else "Registro Delivery", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF0D1321))
-        Text(if (role == UserRole.CLIENT) "Crea tu acceso para pedir en Trinidad." else "Acceso interno para recibir y entregar pedidos.", color = Color(0xFF4C5362), fontWeight = FontWeight.SemiBold)
+        Text(if (role == UserRole.CLIENT) "Registro Cliente" else "Registro Delivery", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color.White)
+        Text(if (role == UserRole.CLIENT) "Crea tu acceso para pedir en Trinidad." else "Acceso interno para recibir y entregar pedidos.", color = ApkBrandMuted, fontWeight = FontWeight.Black)
         Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedButton(
@@ -491,9 +631,9 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             enabled = !viewModel.isRegisteringUser,
             border = BorderStroke(2.dp, Color.White),
             shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF0D1321))
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = ApkBrandBlack)
         ) {
-            Text("G", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFFE50914), modifier = Modifier.padding(end = 10.dp))
+            Text("G", fontSize = 22.sp, fontWeight = FontWeight.Black, color = ApkBrandOrange, modifier = Modifier.padding(end = 10.dp))
             Text("CONTINUAR CON GMAIL", fontWeight = FontWeight.ExtraBold)
         }
         Spacer(modifier = Modifier.height(14.dp))
@@ -503,17 +643,10 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             onValueChange = { name = it.uppercase() },
             label = { Text("Nombre completo") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFFE50914)) },
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = ApkBrandOrange) },
             shape = RoundedCornerShape(18.dp),
-            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color(0xFF0D1321)),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE50914),
-                unfocusedBorderColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedLabelColor = Color(0xFFE50914),
-                unfocusedLabelColor = Color(0xFF4C5362)
-            )
+            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color.White),
+            colors = rapidingoTextFieldColors()
         )
         Spacer(modifier = Modifier.height(14.dp))
         OutlinedTextField(
@@ -521,18 +654,11 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             onValueChange = { email = it.trim() },
             label = { Text("Correo electronico") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Email, null, tint = Color(0xFFE50914)) },
+            leadingIcon = { Icon(Icons.Default.Email, null, tint = ApkBrandOrange) },
             isError = email.isNotBlank() && !emailValid,
             shape = RoundedCornerShape(18.dp),
-            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color(0xFF0D1321)),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE50914),
-                unfocusedBorderColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedLabelColor = Color(0xFFE50914),
-                unfocusedLabelColor = Color(0xFF4C5362)
-            ),
+            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color.White),
+            colors = rapidingoTextFieldColors(),
             supportingText = {
                 if (email.isNotBlank() && !emailValid) {
                     Text("Ingresa un correo valido")
@@ -545,18 +671,11 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             onValueChange = { phone = it },
             label = { Text("Numero de WhatsApp") },
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Phone, null, tint = Color(0xFFE50914)) },
+            leadingIcon = { Icon(Icons.Default.Phone, null, tint = ApkBrandOrange) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
             shape = RoundedCornerShape(18.dp),
-            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color(0xFF0D1321)),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFFE50914),
-                unfocusedBorderColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                focusedLabelColor = Color(0xFFE50914),
-                unfocusedLabelColor = Color(0xFF4C5362)
-            )
+            textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color.White),
+            colors = rapidingoTextFieldColors()
         )
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -570,17 +689,17 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
                     locLauncher.launch(perms.toTypedArray())
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D1321)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ApkBrandBlack),
                 shape = RoundedCornerShape(16.dp)
             ) { Text("ACTIVAR UBICACION", fontWeight = FontWeight.Black) }
         } else {
-            Surface(color = Color(0xFFFFF4CC), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Text("Ubicacion lista para compartir durante pedidos", color = Color(0xFF0D1321), fontWeight = FontWeight.Black, modifier = Modifier.padding(14.dp), textAlign = TextAlign.Center)
+            Surface(color = ApkBrandYellow.copy(alpha = 0.12f), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, ApkBrandYellow.copy(alpha = 0.25f))) {
+                Text("Ubicacion lista para compartir durante pedidos", color = Color.White, fontWeight = FontWeight.Black, modifier = Modifier.padding(14.dp), textAlign = TextAlign.Center)
             }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
-        Text("La camara se pedira cuando envies fotos o comprobantes", color = Color(0xFF4C5362), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+        Text("La camara se pedira cuando envies fotos o comprobantes", color = ApkBrandMuted, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
 
         Spacer(modifier = Modifier.height(18.dp))
         Button(
@@ -601,9 +720,9 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             },
             modifier = Modifier.fillMaxWidth().height(60.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFE50914),
-                disabledContainerColor = Color(0xFFFFD9DC),
-                disabledContentColor = Color(0xFF8A0A10)
+                containerColor = ApkBrandOrange,
+                disabledContainerColor = Color(0xFF2A2A2A),
+                disabledContentColor = Color(0xFF686868)
             ),
             shape = RoundedCornerShape(18.dp),
             enabled = name.isNotBlank() && emailValid && !viewModel.isRegisteringUser
@@ -614,9 +733,9 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
             onClick = { activity?.finish() },
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color(0xFFE50914))
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = ApkBrandOrange)
             Spacer(Modifier.width(8.dp))
-            Text("SALIR DE LA APLICACION", fontWeight = FontWeight.Black, color = Color(0xFFE50914))
+            Text("SALIR DE LA APLICACION", fontWeight = FontWeight.Black, color = ApkBrandOrange)
         }
     }
 }
@@ -672,45 +791,62 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
         topBar = { 
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF161616),
-                    actionIconContentColor = Color(0xFFD32F2F)
+                    containerColor = ApkBrandPanel,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = ApkBrandOrange
                 ),
-                title = { 
-                    Column {
-                        Text(
-                            "¡Hola, $clientName!",
-                            fontSize = 22.sp,
-                            lineHeight = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF161616),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            "¿Qué te llevamos hoy?",
-                            fontSize = 14.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD32F2F)
-                        )
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Surface(
+                            color = ApkBrandPanelSoft,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.size(44.dp),
+                            border = BorderStroke(1.dp, ApkBrandBorder)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.brand_logo),
+                                contentDescription = "Rapidingo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "¡Hola, $clientName!",
+                                fontSize = 20.sp,
+                                lineHeight = 22.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                "CLIENTE RAPIDINGO",
+                                fontSize = 12.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.Black,
+                                color = ApkBrandYellow,
+                                maxLines = 1
+                            )
+                        }
                     }
-                }, 
+                },
                 actions = { 
                     if (selectedCategory == "COMIDA" && viewModel.tempOrderItems.isNotEmpty()) {
                         BadgedBox(
                             badge = {
-                                Badge(containerColor = Color(0xFFD32F2F)) {
+                                Badge(containerColor = ApkBrandOrange) {
                                     Text("${viewModel.tempOrderItems.sumOf { it.quantity }}", color = Color.White)
                                 }
                             }
                         ) {
                             IconButton(onClick = { showSummaryDialog = true }) {
-                                Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFD32F2F))
+                                Icon(Icons.Default.ReceiptLong, null, tint = ApkBrandOrange)
                             }
                         }
                     }
-                    IconButton(onClick = { closeClientSession() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = Color(0xFFD32F2F)) }
+                    IconButton(onClick = { closeClientSession() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = ApkBrandOrange) }
                 }
             ) 
         },
@@ -718,7 +854,7 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
             if (selectedCategory == "COMIDA" && viewModel.tempOrderItems.isNotEmpty()) {
                 ExtendedFloatingActionButton(
                     onClick = { showSummaryDialog = true },
-                    containerColor = Color(0xFFD32F2F),
+                    containerColor = ApkBrandOrange,
                     contentColor = Color.White,
                     icon = { Icon(Icons.Default.ReceiptLong, null) },
                     text = { Text("VER RESUMEN (${viewModel.tempOrderItems.sumOf { it.quantity }})") }
@@ -726,7 +862,7 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
             }
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(Color(0xFFFFFBF8))) {
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(ApkBrandBlack)) {
             if (viewModel.activeOrder == null) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -762,23 +898,15 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                 visualTransformation = UppercaseVisualTransformation,
                                 shape = RoundedCornerShape(22.dp),
-                                textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color(0xFF161616)),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFFF57C00),
-                                    unfocusedBorderColor = Color(0xFFE7D7CE),
-                                    focusedLabelColor = Color(0xFFD32F2F),
-                                    unfocusedLabelColor = Color(0xFF565656),
-                                    cursorColor = Color(0xFFD32F2F),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
-                                )
+                                textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color.White),
+                                colors = rapidingoTextFieldColors()
                             )
 
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                                border = BorderStroke(1.dp, Color(0xFFFFE0B2)),
+                                border = BorderStroke(1.dp, ApkBrandBorder),
                                 shape = RoundedCornerShape(22.dp)
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
@@ -795,9 +923,9 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                             }
                                         )
                                         Column {
-                                            Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color(0xFF161616))
+                                            Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
                                             val locDesc = if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
-                                            Text(locDesc, color = Color(0xFF565656), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                            Text(locDesc, color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         }
                                     }
                                 }
@@ -817,9 +945,9 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 60.dp).height(64.dp),
                                 enabled = selectedCategory != null && orderText.trim().length >= 2,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFD32F2F),
-                                    disabledContainerColor = Color(0xFFFFCDD2),
-                                    disabledContentColor = Color(0xFF8A1F1F)
+                                    containerColor = ApkBrandOrange,
+                                    disabledContainerColor = Color(0xFF2A2A2A),
+                                    disabledContentColor = Color(0xFF686868)
                                 ),
                                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp),
                                 shape = RoundedCornerShape(20.dp)
@@ -905,7 +1033,19 @@ fun RestaurantCarouselScreen(
                 FilterChip(
                     selected = (category == selectedCategory || (category == "TODOS" && selectedCategory == null)),
                     onClick = { onCategoryFilter(if (category == "TODOS") null else category) },
-                    label = { Text(category) }
+                    label = { Text(category, fontWeight = FontWeight.Black) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = ApkBrandOrange,
+                        selectedLabelColor = Color.White,
+                        containerColor = ApkBrandPanel,
+                        labelColor = Color.White
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = (category == selectedCategory || (category == "TODOS" && selectedCategory == null)),
+                        borderColor = ApkBrandBorder,
+                        selectedBorderColor = ApkBrandOrange
+                    )
                 )
             }
         }
@@ -915,9 +1055,9 @@ fun RestaurantCarouselScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.DoubleArrow, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.DoubleArrow, null, tint = ApkBrandOrange, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Doble clic en la tarjeta para pedir", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF565656))
+            Text("Doble clic en la tarjeta para pedir", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ApkBrandMuted)
         }
 
         LazyRow(
@@ -954,7 +1094,7 @@ fun RestaurantCardDoubleTap(
                 lastTapTime = currentTime
             },
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Box(
@@ -1161,7 +1301,7 @@ fun RestaurantOrderDialog(
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        Text("RESERVA DE MENU", fontWeight = FontWeight.Black, fontSize = 12.sp, color = Color(0xFFD32F2F), letterSpacing = 1.sp)
+                        Text("RESERVA DE MENU", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ApkBrandOrange, letterSpacing = 1.sp)
                         Text(restaurant.name.uppercase(), fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF161616))
 
                         Spacer(Modifier.height(12.dp))
@@ -1194,7 +1334,7 @@ fun RestaurantOrderDialog(
                                             textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF161616)),
                                             singleLine = true,
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = Color(0xFFD32F2F),
+                                                focusedBorderColor = ApkBrandOrange,
                                                 unfocusedBorderColor = Color(0xFFE0E0E0),
                                                 focusedContainerColor = Color.White,
                                                 unfocusedContainerColor = Color.White,
@@ -1205,14 +1345,14 @@ fun RestaurantOrderDialog(
                                         Spacer(Modifier.width(10.dp))
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp)).border(1.dp, Color(0xFFD32F2F).copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                                            modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp)).border(1.dp, ApkBrandOrange.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                                         ) {
                                             IconButton(onClick = { if (row.quantity > 1) draftRows[index] = row.copy(quantity = row.quantity - 1) }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Remove, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                                                Icon(Icons.Default.Remove, null, tint = ApkBrandOrange, modifier = Modifier.size(16.dp))
                                             }
                                             Text("${row.quantity}", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF161616), modifier = Modifier.padding(horizontal = 6.dp))
                                             IconButton(onClick = { draftRows[index] = row.copy(quantity = row.quantity + 1) }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Add, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                                                Icon(Icons.Default.Add, null, tint = ApkBrandOrange, modifier = Modifier.size(16.dp))
                                             }
                                         }
                                         if (draftRows.size > 1) {
@@ -1225,7 +1365,7 @@ fun RestaurantOrderDialog(
                                         Text(
                                             "Presione \"+\" para agregar a su pedido",
                                             fontSize = 10.sp,
-                                            color = Color(0xFFD32F2F),
+                                            color = ApkBrandOrange,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(top = 4.dp, start = 4.dp)
                                         )
@@ -1237,8 +1377,8 @@ fun RestaurantOrderDialog(
                                 onClick = { draftRows.add(TempOrderItem(restaurantId = restaurant.id, restaurantName = restaurant.name, productName = "")) },
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFFD32F2F)),
-                                border = BorderStroke(1.5.dp, Color(0xFFD32F2F))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ApkBrandOrange),
+                                border = BorderStroke(1.5.dp, ApkBrandOrange)
                             ) {
                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
@@ -1261,7 +1401,7 @@ fun RestaurantOrderDialog(
                             enabled = draftRows.any { it.productName.isNotBlank() },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
                         ) {
                             Icon(Icons.Default.ReceiptLong, null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
@@ -1348,7 +1488,7 @@ fun OrderSummaryDialog(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(item.productName.uppercase(), fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color(0xFF161616), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(item.restaurantName.uppercase(), fontSize = 9.sp, color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
+                                        Text(item.restaurantName.uppercase(), fontSize = 9.sp, color = ApkBrandOrange, fontWeight = FontWeight.Bold)
                                     }
                                     Text(
                                         "x${item.quantity}",
@@ -1377,7 +1517,7 @@ fun OrderSummaryDialog(
                             onClick = onConfirmOrder,
                             modifier = Modifier.fillMaxWidth().height(60.dp),
                             shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
                         ) {
                             Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.width(12.dp))
@@ -1406,7 +1546,7 @@ fun DestinationPickerDialog(
     var selectedPoint by remember(initialLocation) { mutableStateOf(initialLocation) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(24.dp), color = Color.White, tonalElevation = 8.dp) {
+        Surface(shape = RoundedCornerShape(24.dp), color = ApkBrandPanel, tonalElevation = 8.dp, border = BorderStroke(1.dp, ApkBrandBorder)) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -1414,8 +1554,8 @@ fun DestinationPickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Destino de entrega", color = Color(0xFFD32F2F), fontSize = 12.sp, fontWeight = FontWeight.Black)
-                        Text("Mueve el mapa", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("Destino de entrega", color = ApkBrandOrange, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                        Text("Mueve el mapa", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Cerrar")
@@ -1446,7 +1586,7 @@ fun DestinationPickerDialog(
                             if (isSatellite) Icons.Default.Map else Icons.Default.SatelliteAlt,
                             contentDescription = null,
                             modifier = Modifier.padding(8.dp),
-                            tint = Color(0xFFD32F2F)
+                            tint = ApkBrandOrange
                         )
                     }
 
@@ -1455,13 +1595,13 @@ fun DestinationPickerDialog(
                         Icons.Default.LocationOn,
                         contentDescription = null,
                         modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-24).dp),
-                        tint = Color(0xFFD32F2F)
+                        tint = ApkBrandOrange
                     )
                 }
 
                 Text(
                     "Ubica el pin rojo en el punto exacto de entrega.",
-                    color = Color(0xFF565656),
+                    color = ApkBrandMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
@@ -1473,7 +1613,7 @@ fun DestinationPickerDialog(
                     Button(
                         onClick = { onConfirm(selectedPoint) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                        colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
                     ) {
                         Text("CONFIRMAR", fontWeight = FontWeight.Bold)
                     }
@@ -1590,52 +1730,57 @@ fun DeliveryModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, on
     Scaffold(topBar = { 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color(0xFF161616),
-                actionIconContentColor = Color(0xFFD32F2F)
+                containerColor = ApkBrandPanel,
+                titleContentColor = Color.White,
+                actionIconContentColor = ApkBrandOrange
             ),
             title = { 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Surface(
-                        color = Color(0xFFFFF3E0),
-                        shape = CircleShape,
+                        color = ApkBrandPanelSoft,
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.size(42.dp)
                     ) {
-                        Icon(Icons.Default.TwoWheeler, null, modifier = Modifier.padding(9.dp), tint = Color(0xFFF57C00))
+                        Image(
+                            painter = painterResource(id = R.drawable.brand_logo),
+                            contentDescription = "Rapidingo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Soy Rapidingo", fontSize = 19.sp, lineHeight = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF161616))
-                        Text(deliveryName.ifBlank { "Repartidor" }, fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("RAPIDINGO", fontSize = 19.sp, lineHeight = 22.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        Text(deliveryName.ifBlank { "Repartidor" }, fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold, color = ApkBrandYellow, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Surface(
-                        color = Color(0xFFE8F5E9),
+                        color = ApkBrandSuccess.copy(alpha = 0.16f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("ONLINE", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32))
+                        Text("ONLINE", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF50E36D))
                     }
                 }
             }, 
             actions = { 
                 IconButton(onClick = { showReports.value = true }) { Icon(Icons.Default.Assessment, contentDescription = "Reportes") }
-                IconButton(onClick = { closeDeliveryApp() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = Color.Red) }
+                IconButton(onClick = { closeDeliveryApp() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Cerrar sesion", tint = ApkBrandOrange) }
             }
         ) 
     }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(Color(0xFFFFFBF8))) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(ApkBrandBlack)) {
             val order = viewModel.activeOrder
             if (order == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(shape = CircleShape, color = Color(0xFFFFF3E0), modifier = Modifier.size(104.dp)) {
-                            Icon(Icons.Default.TwoWheeler, contentDescription = null, modifier = Modifier.padding(24.dp), tint = Color(0xFFF57C00))
+                        Surface(shape = RoundedCornerShape(34.dp), color = ApkBrandPanel, modifier = Modifier.size(104.dp), border = BorderStroke(1.dp, ApkBrandBorder), shadowElevation = 12.dp) {
+                            Icon(Icons.Default.TwoWheeler, contentDescription = null, modifier = Modifier.padding(24.dp), tint = ApkBrandOrange)
                         }
                         Spacer(Modifier.height(18.dp))
-                        Text("ESTÁS ONLINE", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF161616))
-                        Text("Los pedidos llegarán pronto a Trinidad.", color = Color(0xFF565656), fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+                        Text("ESTÁS ONLINE", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White)
+                        Text("Los pedidos llegarán pronto a Trinidad.", color = ApkBrandMuted, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
                         Button(
                             onClick = { closeDeliveryApp() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                             shape = RoundedCornerShape(18.dp),
                             modifier = Modifier.height(54.dp)
                         ) {
@@ -1667,21 +1812,24 @@ fun ReportsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("CERRAR") } },
-        title = { Text("Resumen de Ganancias") },
+        containerColor = ApkBrandPanel,
+        titleContentColor = Color.White,
+        textContentColor = Color.White,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("CERRAR", color = ApkBrandOrange, fontWeight = FontWeight.Black) } },
+        title = { Text("Resumen de Ganancias", fontWeight = FontWeight.Black) },
         text = {
             Column {
                 Text("Total de Pedidos: ${completedOrders.size}", fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Ganancia neta (Servicios): Bs. $totalEarnings", color = Color(0xFF2E7D32), fontWeight = FontWeight.ExtraBold)
-                Text("Monto en Productos: Bs. $totalProducts", color = Color(0xFF565656), fontWeight = FontWeight.SemiBold)
+                Text("Ganancia neta (Servicios): Bs. $totalEarnings", color = ApkBrandYellow, fontWeight = FontWeight.ExtraBold)
+                Text("Monto en Productos: Bs. $totalProducts", color = ApkBrandMuted, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Tus pedidos hoy:", fontSize = 14.sp, color = Color(0xFF565656), fontWeight = FontWeight.SemiBold)
+                Text("Tus pedidos hoy:", fontSize = 14.sp, color = ApkBrandMuted, fontWeight = FontWeight.SemiBold)
                 LazyColumn(modifier = Modifier.height(200.dp)) {
                     items(completedOrders) { order ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(order.description.take(20) + "...", fontSize = 12.sp)
-                            Text("Bs. ${order.servicePrice}", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                            Text("Bs. ${order.servicePrice}", fontWeight = FontWeight.Bold, color = ApkBrandYellow)
                         }
                     }
                 }
@@ -1719,8 +1867,8 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 20.dp),
             shape = RoundedCornerShape(32.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFF5F5F5))
+            colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
+            border = BorderStroke(1.dp, ApkBrandBorder)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 if (!isEnRoute) {
@@ -1734,22 +1882,22 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                             Text(
                                 order.status.toSpanish().uppercase(), 
                                 fontWeight = FontWeight.Black, 
-                                color = Color(0xFFD32F2F), 
+                                color = ApkBrandOrange,
                                 fontSize = 11.sp,
                                 letterSpacing = 1.sp
                             )
                             Text(
                                 deliveryNameDisplay, 
                                 fontWeight = FontWeight.ExtraBold, 
-                                color = Color.Black, 
+                                color = Color.White,
                                 fontSize = 20.sp
                             )
                         }
                         
                         if (order.totalPrice != null) {
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("A PAGAR", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color(0xFF565656))
-                                Text("Bs. ${order.totalPrice}", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF2E7D32))
+                                Text("A PAGAR", fontSize = 11.sp, fontWeight = FontWeight.Black, color = ApkBrandMuted)
+                                Text("Bs. ${order.totalPrice}", fontSize = 26.sp, fontWeight = FontWeight.Black, color = ApkBrandYellow)
                             }
                         }
                     }
@@ -1760,7 +1908,7 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                         Button(
                             onClick = { viewModel.updateOrderStatus(OrderStatus.CONFIRMED_BY_CLIENT) }, 
                             modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandYellow, contentColor = ApkBrandBlack),
                             shape = RoundedCornerShape(16.dp)
                         ) { 
                             Text("ACEPTAR Y CONFIRMAR PEDIDO", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp) 
@@ -1769,26 +1917,26 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                     } else if (order.status == OrderStatus.BIDDING) {
                         LinearProgressIndicator(
                             modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), 
-                            color = Color(0xFFD32F2F),
-                            trackColor = Color(0xFFFFEBEE)
+                            color = ApkBrandOrange,
+                            trackColor = Color.White.copy(alpha = 0.08f)
                         )
-                        Text("Buscando el mejor precio para ti...", fontSize = 12.sp, color = Color(0xFF565656), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally))
+                        Text("Buscando el mejor precio para ti...", fontSize = 12.sp, color = ApkBrandMuted, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp).align(Alignment.CenterHorizontally))
                         Spacer(Modifier.height(16.dp))
                     }
                 } else {
                     // Vista compacta durante el seguimiento real
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Surface(
-                            color = Color(0xFFFFF3E0),
+                            color = ApkBrandOrange.copy(alpha = 0.18f),
                             shape = CircleShape,
                             modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Default.TwoWheeler, null, tint = Color(0xFFF57C00), modifier = Modifier.padding(12.dp))
+                            Icon(Icons.Default.TwoWheeler, null, tint = ApkBrandOrange, modifier = Modifier.padding(12.dp))
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(order.status.toSpanish().uppercase(), fontWeight = FontWeight.Black, color = Color(0xFFF57C00), fontSize = 11.sp)
-                            Text(deliveryNameDisplay, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                            Text(order.status.toSpanish().uppercase(), fontWeight = FontWeight.Black, color = ApkBrandOrange, fontSize = 11.sp)
+                            Text(deliveryNameDisplay, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
                         }
                     }
                     
@@ -1799,7 +1947,7 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                                 viewModel.addChatMessage("Ya salgo, gracias", viewModel.clientUser?.id ?: "")
                                 viewModel.updateOrderStatus(OrderStatus.COMPLETED) 
                             }, 
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth().height(56.dp)
                         ) { 
@@ -1816,7 +1964,7 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                     Button(
                         onClick = onOpenChat,
                         modifier = Modifier.weight(1f).height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF455A64)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.08f)),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(20.dp))
@@ -1845,7 +1993,7 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                         onClick = { viewModel.updateOrderStatus(OrderStatus.CANCELLED) },
                         modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
                     ) {
-                        Text("CANCELAR PEDIDO", color = Color(0xFFD32F2F), fontSize = 12.sp, fontWeight = FontWeight.Black, textDecoration = TextDecoration.Underline)
+                        Text("CANCELAR PEDIDO", color = ApkBrandOrange, fontSize = 12.sp, fontWeight = FontWeight.Black, textDecoration = TextDecoration.Underline)
                     }
                 }
             }
@@ -1919,20 +2067,20 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
             elevation = CardDefaults.cardElevation(defaultElevation = 22.dp),
-            border = BorderStroke(1.dp, Color(0xFFFFE0B2))
+            border = BorderStroke(1.dp, ApkBrandBorder)
         ) {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp)) {
                 // Info Cliente
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(48.dp), shape = CircleShape, color = Color(0xFFFFF3E0)) {
-                        Icon(Icons.Default.Person, null, modifier = Modifier.padding(11.dp), tint = Color(0xFFD32F2F))
+                    Surface(modifier = Modifier.size(48.dp), shape = CircleShape, color = ApkBrandOrange.copy(alpha = 0.18f)) {
+                        Icon(Icons.Default.Person, null, modifier = Modifier.padding(11.dp), tint = ApkBrandOrange)
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(clientNameDisplay.uppercase(), fontWeight = FontWeight.Black, color = Color.Black, fontSize = 16.sp)
-                        Text(order.description.uppercase(), fontWeight = FontWeight.Bold, color = Color(0xFF565656), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(clientNameDisplay.uppercase(), fontWeight = FontWeight.Black, color = Color.White, fontSize = 16.sp)
+                        Text(order.description.uppercase(), fontWeight = FontWeight.Bold, color = ApkBrandMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 
@@ -1945,25 +2093,25 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                 onClick = { viewModel.startBidding() }, 
                                 modifier = Modifier.weight(1.2f).height(58.dp),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                                colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
                             ) { 
                                 Text("TOMAR PEDIDO", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White, maxLines = 1) 
                             }
                             OutlinedButton(
                                 onClick = { viewModel.rejectOrder() }, 
                                 modifier = Modifier.weight(1f).height(58.dp),
-                                border = BorderStroke(2.dp, Color(0xFFD32F2F)),
+                                border = BorderStroke(2.dp, ApkBrandOrange),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F))
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.04f), contentColor = ApkBrandOrange)
                             ) { 
                                 Text("RECHAZAR", fontSize = 13.sp, fontWeight = FontWeight.Bold) 
                             }
                         }
                     }
                     OrderStatus.BIDDING -> {
-                        Column(modifier = Modifier.background(Color(0xFFFFF8F2), RoundedCornerShape(18.dp)).padding(16.dp)) {
+                        Column(modifier = Modifier.background(ApkBrandPanelSoft, RoundedCornerShape(18.dp)).padding(16.dp)) {
                             if (order.category == "COMIDA" && quoteRows.isNotEmpty()) {
-                                Text("COTIZACIÓN DESGLOSADA", fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color(0xFFD32F2F))
+                                Text("COTIZACIÓN DESGLOSADA", fontWeight = FontWeight.Black, fontSize = 13.sp, color = ApkBrandYellow)
                                 Spacer(Modifier.height(8.dp))
                                 
                                 Column(
@@ -1977,16 +2125,16 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
                                             shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                                            border = BorderStroke(1.dp, Color(0xFFE7D7CE))
+                                            colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
+                                            border = BorderStroke(1.dp, ApkBrandBorder)
                                         ) {
                                             Row(
                                                 modifier = Modifier.padding(10.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(item.item, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Black)
-                                                    Text("Cant: ${item.quantity} • ${item.restaurant}", fontSize = 11.sp, color = Color.Gray)
+                                                    Text(item.item, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                                                    Text("Cant: ${item.quantity} • ${item.restaurant}", fontSize = 11.sp, color = ApkBrandMuted)
                                                 }
                                                 Spacer(Modifier.width(8.dp))
                                                 OutlinedTextField(
@@ -2000,7 +2148,8 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                                     modifier = Modifier.width(90.dp).height(50.dp),
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                     shape = RoundedCornerShape(8.dp),
-                                                    textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                                                    textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                                    colors = rapidingoTextFieldColors(),
                                                     singleLine = true
                                                 )
                                             }
@@ -2019,18 +2168,13 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF161616)),
+                                        textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White),
                                         singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFFD32F2F),
-                                            unfocusedBorderColor = Color.LightGray,
-                                            focusedTextColor = Color(0xFF161616),
-                                            unfocusedTextColor = Color(0xFF161616)
-                                        )
+                                        colors = rapidingoTextFieldColors()
                                     )
                                     Column(horizontalAlignment = Alignment.End) {
-                                        Text("SUBTOTAL PROD: Bs. $calculatedProductTotal", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF161616))
-                                        Text("TOTAL: Bs. ${calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)}", fontWeight = FontWeight.Black, color = Color(0xFFD32F2F), fontSize = 24.sp)
+                                        Text("SUBTOTAL PROD: Bs. $calculatedProductTotal", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                        Text("TOTAL: Bs. ${calculatedProductTotal + (sPrice.toDoubleOrNull() ?: 0.0)}", fontWeight = FontWeight.Black, color = ApkBrandYellow, fontSize = 24.sp)
                                     }
                                 }
                             } else {
@@ -2042,13 +2186,8 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF161616)),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFFD32F2F),
-                                            unfocusedBorderColor = Color.LightGray,
-                                            focusedTextColor = Color(0xFF161616),
-                                            unfocusedTextColor = Color(0xFF161616)
-                                        )
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                                        colors = rapidingoTextFieldColors()
                                     )
                                     OutlinedTextField(
                                         value = sPrice, 
@@ -2057,19 +2196,14 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         shape = RoundedCornerShape(12.dp),
-                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF161616)),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFFD32F2F),
-                                            unfocusedBorderColor = Color.LightGray,
-                                            focusedTextColor = Color(0xFF161616),
-                                            unfocusedTextColor = Color(0xFF161616)
-                                        )
+                                        textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                                        colors = rapidingoTextFieldColors()
                                     )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text("TOTAL A COBRAR:", fontWeight = FontWeight.Black, color = Color(0xFF565656), fontSize = 14.sp)
-                                    Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = Color(0xFFD32F2F), fontSize = 28.sp)
+                                    Text("TOTAL A COBRAR:", fontWeight = FontWeight.Black, color = ApkBrandMuted, fontSize = 14.sp)
+                                    Text("Bs. $totalCalculated", fontWeight = FontWeight.Black, color = ApkBrandYellow, fontSize = 28.sp)
                                 }
                             }
                         }
@@ -2084,7 +2218,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                             }, 
                             modifier = Modifier.fillMaxWidth().height(60.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57C00)),
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                             contentPadding = PaddingValues(horizontal = 14.dp)
                         ) { 
                             Text("ENVIAR COTIZACIÓN", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White, maxLines = 1) 
@@ -2094,7 +2228,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                         Button(
                             onClick = { viewModel.updateOrderStatus(OrderStatus.PICKING_UP) }, 
                             modifier = Modifier.fillMaxWidth().height(62.dp), 
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)), 
+                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                             shape = RoundedCornerShape(16.dp)
                         ) { 
                             Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
@@ -2107,7 +2241,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                             Button(
                                 onClick = { viewModel.updateOrderStatus(OrderStatus.IN_DELIVERY) }, 
                                 modifier = Modifier.fillMaxWidth().height(62.dp), 
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57C00)), 
+                                colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                                 shape = RoundedCornerShape(16.dp)
                             ) { 
                                 Icon(Icons.Default.BikeScooter, null, tint = Color.White)
@@ -2181,7 +2315,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                         onClick = { viewModel.rejectOrder() },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     ) {
-                        Text("CANCELAR / RECHAZAR", color = Color(0xFFD32F2F), fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("CANCELAR / RECHAZAR", color = ApkBrandOrange, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -2312,10 +2446,10 @@ fun CategoryButton(text: String, imageRes: Int, tintColor: Color, isSelected: Bo
             .clip(RoundedCornerShape(22.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
-        color = if (isSelected) Color(0xFFFFF8F2) else tintColor,
+        color = if (isSelected) ApkBrandPanelSoft else ApkBrandPanel,
         border = BorderStroke(
-            width = if (isSelected) 3.dp else 1.dp,
-            color = if (isSelected) Color(0xFFD32F2F) else Color(0xFFFFE0B2)
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) ApkBrandOrange else ApkBrandBorder
         ),
         shadowElevation = if (isSelected) 12.dp else 5.dp
     ) {
@@ -2337,7 +2471,7 @@ fun CategoryButton(text: String, imageRes: Int, tintColor: Color, isSelected: Bo
                 text,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
-                color = if (isSelected) Color(0xFFD32F2F) else Color(0xFF161616),
+                color = if (isSelected) ApkBrandOrange else Color.White,
                 textAlign = TextAlign.Center,
                 maxLines = 1
             )
