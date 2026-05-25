@@ -70,7 +70,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '74721716',
     address: 'Trinidad Centro',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/wings_drinks.png',
+    logoUrl: 'assets/restaurants/wings_drinks.jpg',
     color: '#FF6A00'
   },
   {
@@ -84,7 +84,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '69376937',
     address: 'C/ Macheteros #284',
     schedule: 'Lun-Dom: 12:00 - 23:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_brete.png',
+    logoUrl: 'assets/restaurants/el_brete.jpg',
     color: '#FFC107'
   },
   {
@@ -98,7 +98,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana.png',
+    logoUrl: 'assets/restaurants/la_toscana.jpg',
     color: '#FF6A00'
   },
   {
@@ -112,7 +112,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana1.png',
+    logoUrl: 'assets/restaurants/la_toscana1.jpg',
     color: '#FFC107'
   },
   {
@@ -126,7 +126,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73900041',
     address: 'Calle 9 de Abril, diagonal parroquia Fatima',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_plazuela.png',
+    logoUrl: 'assets/restaurants/la_plazuela.jpg',
     color: '#FF6A00'
   },
   {
@@ -140,7 +140,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '72845195',
     address: 'Calle Sucre esquina 9 de Abril',
     schedule: 'Mar-Dom: 19:00 - 23:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_coqueta.png',
+    logoUrl: 'assets/restaurants/la_coqueta.jpg',
     color: '#FF6A00'
   },
   {
@@ -154,7 +154,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '77848655',
     address: 'Calle Santa Cruz esq. Av. del Mar',
     schedule: 'Lun-Dom: 12:00 - 23:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/mr_grill.png',
+    logoUrl: 'assets/restaurants/mr_grill.jpg',
     color: '#FFC107'
   },
   {
@@ -168,7 +168,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '72815881',
     address: 'Av. del Mar frente a la Plaza Ganadera',
     schedule: '19:00 - 12:30',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/el_benianito.png',
+    logoUrl: 'assets/restaurants/el_benianito.jpg',
     color: '#FF6A00'
   },
   {
@@ -182,7 +182,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '67270686',
     address: 'Trinidad Centro',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/toby.png',
+    logoUrl: 'assets/restaurants/toby.jpg',
     color: '#FF6A00'
   },
   {
@@ -196,7 +196,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'https://pwxqjyrpjqxutpjqumhw.supabase.co/storage/v1/object/public/imagenes_restaurant/la_toscana2.png',
+    logoUrl: 'assets/restaurants/la_toscana2.jpg',
     color: '#FFC107'
   }
 ];

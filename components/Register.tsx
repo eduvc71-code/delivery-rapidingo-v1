@@ -378,7 +378,7 @@ export const Register: React.FC<RegisterProps> = ({ role, onRegister }) => {
                 </div>
                 {!hasValidGps && (
                   <button onClick={requestLocation} className="w-full py-4 rounded-2xl bg-white text-brand-black font-black text-sm font-teko italic uppercase tracking-[3px] active:scale-95 transition-all">
-                            ACTIVAR UBICACION
+                    ACTIVAR UBICACION
                   </button>
                 )}
                 <button onClick={completeRegistration} disabled={!hasValidGps} className={`w-full py-5 rounded-2xl text-white font-black text-lg font-teko italic uppercase tracking-[4px] ${buttonGradient} disabled:opacity-30 active:scale-95 transition-all shadow-2xl`}>LISTO, ENTRAR</button>
