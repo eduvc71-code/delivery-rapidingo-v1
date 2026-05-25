@@ -31,6 +31,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -52,8 +53,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -73,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
@@ -1040,6 +1046,51 @@ fun RestaurantCardDoubleTap(
 }
 
 @Composable
+fun ZoomableImage(
+    url: String?,
+    modifier: Modifier = Modifier
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .clip(RectangleShape)
+    ) {
+        val scope = this
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(1f, 5f)
+                        val maxX = (scope.constraints.maxWidth * (scale - 1)) / 2
+                        val maxY = (scope.constraints.maxHeight * (scale - 1)) / 2
+                        offset = Offset(
+                            x = (offset.x + pan.x).coerceIn(-maxX, maxX),
+                            y = (offset.y + pan.y).coerceIn(-maxY, maxY)
+                        )
+                    }
+                }
+        ) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x,
+                        translationY = offset.y
+                    ),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}
+
+@Composable
 fun RestaurantOrderDialog(
     restaurant: Restaurant,
     existingItems: List<TempOrderItem>,
@@ -1048,163 +1099,179 @@ fun RestaurantOrderDialog(
     onUpdateQuantity: (String, Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var productName by remember { mutableStateOf("") }
-    var quantity by remember { mutableIntStateOf(1) }
-    val scrollState = rememberScrollState()
+    // Usamos el mismo estado de filas temporales que en la PWA
+    val draftRows = remember { mutableStateListOf(TempOrderItem(restaurantId = restaurant.id, restaurantName = restaurant.name, productName = "")) }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (productName.isNotBlank() && quantity > 0) {
-                        onAddItem(productName, quantity)
-                        productName = ""
-                        quantity = 1
-                    }
-                },
-                enabled = productName.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
-            ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text("AGREGAR")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("CERRAR")
-            }
-        },
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(32.dp),
-                    shape = CircleShape,
-                    color = Color(restaurant.logoColor).copy(alpha = 0.2f)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF111111)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header (Z-Index alto)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF111111).copy(alpha = 0.95f))
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Restaurant, null, tint = Color(restaurant.logoColor), modifier = Modifier.size(20.dp))
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, null, tint = Color.White)
+                    }
+                    Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+                        Text(restaurant.name.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(restaurant.schedule.uppercase(), color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(restaurant.name, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text("Toca en la foto para pedir • ${existingItems.size} items", fontSize = 12.sp, color = Color.Gray)
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(scrollState)
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+
+                // Zona de Menú (Zoomable) - Ocupa la parte superior
+                Box(modifier = Modifier.weight(1.3f)) {
+                    ZoomableImage(
+                        url = restaurant.menuUrl ?: restaurant.logoUrl,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp)
                     ) {
-                        OutlinedTextField(
-                            value = productName,
-                            onValueChange = { productName = it.uppercase() },
-                            placeholder = { Text("NOMBRE DEL PLATO...") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp),
-                            maxLines = 1,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFFD32F2F),
-                                unfocusedBorderColor = Color.LightGray
-                            )
+                        Text(
+                            "HACE ZOOM PARA VER PRECIOS",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Row(
-                            modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(12.dp))
-                                .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
-                        ) {
-                            IconButton(
-                                onClick = { if (quantity > 1) quantity-- },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(Icons.Default.Remove, null, modifier = Modifier.size(18.dp))
-                            }
-                            Text(
-                                "$quantity",
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            IconButton(
-                                onClick = { quantity++ },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                            }
-                        }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-                Text("TUS PRODUCTOS:", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Gray)
-                Spacer(Modifier.height(8.dp))
-
-                if (existingItems.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.ShoppingBasket, null, tint = Color.Gray, modifier = Modifier.size(48.dp))
-                            Spacer(Modifier.height(8.dp))
-                            Text("Aún no has agregado productos", color = Color.Gray, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                } else {
+                // Panel de Pedido (Blanco) - Simula el 42% de la PWA
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    color = Color.White,
+                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(16.dp)
                     ) {
-                        existingItems.forEach { item ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(1.dp, Color(0xFFE0E0E0))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                        Text("RESERVA DE MENU", fontWeight = FontWeight.Black, fontSize = 12.sp, color = Color(0xFFD32F2F), letterSpacing = 1.sp)
+                        Text(restaurant.name.uppercase(), fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF161616))
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Lista de filas de entrada (Tipo Excel/PWA)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            draftRows.forEachIndexed { index, row ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFF9F9F9), RoundedCornerShape(16.dp))
+                                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
+                                        .padding(10.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(item.productName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text(restaurant.name, fontSize = 11.sp, color = Color.Gray)
-                                    }
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("x${item.quantity}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD32F2F))
-                                        IconButton(
-                                            onClick = { onRemoveItem(item.id) },
-                                            modifier = Modifier.size(32.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = row.productName,
+                                            onValueChange = { draftRows[index] = row.copy(productName = it.uppercase()) },
+                                            placeholder = { Text("¿QUÉ VAS A PEDIR?", fontSize = 12.sp, color = Color.Gray) },
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF161616)),
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = Color(0xFFD32F2F),
+                                                unfocusedBorderColor = Color(0xFFE0E0E0),
+                                                focusedContainerColor = Color.White,
+                                                unfocusedContainerColor = Color.White,
+                                                focusedTextColor = Color(0xFF161616),
+                                                unfocusedTextColor = Color(0xFF161616)
+                                            )
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp)).border(1.dp, Color(0xFFD32F2F).copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                                         ) {
-                                            Icon(Icons.Default.Close, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                                            IconButton(onClick = { if (row.quantity > 1) draftRows[index] = row.copy(quantity = row.quantity - 1) }, modifier = Modifier.size(36.dp)) {
+                                                Icon(Icons.Default.Remove, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                                            }
+                                            Text("${row.quantity}", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF161616), modifier = Modifier.padding(horizontal = 6.dp))
+                                            IconButton(onClick = { draftRows[index] = row.copy(quantity = row.quantity + 1) }, modifier = Modifier.size(36.dp)) {
+                                                Icon(Icons.Default.Add, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(16.dp))
+                                            }
                                         }
+                                        if (draftRows.size > 1) {
+                                            IconButton(onClick = { draftRows.removeAt(index) }, modifier = Modifier.size(36.dp)) {
+                                                Icon(Icons.Default.Delete, null, tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
+                                            }
+                                        }
+                                    }
+                                    if (index == 0 && draftRows.size == 1) {
+                                        Text(
+                                            "Presione \"+\" para agregar a su pedido",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFFD32F2F),
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                                        )
                                     }
                                 }
                             }
+
+                            Button(
+                                onClick = { draftRows.add(TempOrderItem(restaurantId = restaurant.id, restaurantName = restaurant.name, productName = "")) },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFFD32F2F)),
+                                border = BorderStroke(1.5.dp, Color(0xFFD32F2F))
+                            ) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("AÑADIR OTRA FILA", fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Botón Primario: RESERVAR (Como en PWA)
+                        Button(
+                            onClick = {
+                                draftRows.forEach { row ->
+                                    if (row.productName.isNotBlank()) {
+                                        onAddItem(row.productName, row.quantity)
+                                    }
+                                }
+                                onDismiss()
+                            },
+                            enabled = draftRows.any { it.productName.isNotBlank() },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                        ) {
+                            Icon(Icons.Default.ReceiptLong, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text("RESERVAR PEDIDO", fontWeight = FontWeight.Black, fontSize = 15.sp)
                         }
                     }
                 }
             }
-        },
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.7f)
-    )
+        }
+    }
 }
 
 @Composable
@@ -1216,113 +1283,118 @@ fun OrderSummaryDialog(
     onConfirmOrder: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val grouped = items.groupBy { it.restaurantName }
     val totalItems = items.sumOf { it.quantity }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        confirmButton = {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF111111).copy(alpha = 0.98f)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header (Z-Index alto)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("SEGUIR PEDIDO")
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, null, tint = Color.White)
+                    }
+                    Column(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
+                        Text("RESUMEN DE PEDIDO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                        Text("$totalItems productos en tu lista", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    IconButton(onClick = onClearAll) {
+                        Icon(Icons.Default.DeleteSweep, null, tint = Color.Red.copy(alpha = 0.8f))
+                    }
                 }
-                Button(
-                    onClick = onConfirmOrder,
-                    modifier = Modifier.weight(1.5f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+
+                // Cuerpo Blanco (Contenedor Excel)
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    color = Color.White,
+                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
                 ) {
-                    Icon(Icons.Default.Check, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("CONFIRMAR")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onClearAll) {
-                Text("VACIAR TODO", color = Color.Red)
-            }
-        },
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(28.dp))
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text("RESUMEN DE PEDIDO", fontWeight = FontWeight.ExtraBold)
-                    Text("$totalItems productos en ${grouped.size} restaurante(s)", fontSize = 12.sp, color = Color.Gray)
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 350.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                grouped.forEach { (restaurantName, restItems) ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFFF8F9FA)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Restaurant, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(restaurantName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Spacer(Modifier.weight(1f))
-                                Text("${restItems.size} items", fontSize = 12.sp, color = Color.Gray)
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp).alpha(0.2f))
-                            restItems.forEach { item ->
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // CABECERA TABLA EXCEL
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF263238), RoundedCornerShape(8.dp))
+                                .padding(10.dp)
+                        ) {
+                            Text("DESCRIPCIÓN DEL PEDIDO", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Text("CANT.", modifier = Modifier.width(50.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
+                            Text("OPC.", modifier = Modifier.width(60.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(1.dp) // Sin espacio para simular bordes de tabla
+                        ) {
+                            items(items) { item ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(0.5.dp, Color.LightGray)
+                                        .padding(vertical = 4.dp, horizontal = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("• ${item.productName}", fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                                        Spacer(Modifier.width(8.dp))
-                                        Surface(
-                                            modifier = Modifier.size(24.dp),
-                                            shape = CircleShape,
-                                            color = Color(0xFFD32F2F).copy(alpha = 0.1f)
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Text("x${item.quantity}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
-                                            }
-                                        }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.productName.uppercase(), fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color(0xFF161616), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(item.restaurantName.uppercase(), fontSize = 9.sp, color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
                                     }
-                                    Row {
-                                        IconButton(
-                                            onClick = { onEditItem(item.id) },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(Icons.Default.Edit, null, tint = Color.Blue, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        "x${item.quantity}",
+                                        modifier = Modifier.width(50.dp),
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF161616),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Row(modifier = Modifier.width(60.dp), horizontalArrangement = Arrangement.End) {
+                                        IconButton(onClick = { onEditItem(item.id) }, modifier = Modifier.size(30.dp)) {
+                                            Icon(Icons.Default.Visibility, null, tint = Color(0xFF1976D2), modifier = Modifier.size(18.dp))
                                         }
-                                        IconButton(
-                                            onClick = { onRemoveItem(item.id) },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                                        IconButton(onClick = { onRemoveItem(item.id) }, modifier = Modifier.size(30.dp)) {
+                                            Icon(Icons.Default.Delete, null, tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                                         }
                                     }
                                 }
                             }
                         }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // BOTÓN FINAL
+                        Button(
+                            onClick = onConfirmOrder,
+                            modifier = Modifier.fillMaxWidth().height(60.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                        ) {
+                            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(24.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("ENVIAR PEDIDO AHORA", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        }
+
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("SEGUIR AGREGANDO MÁS", color = Color(0xFF455A64), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             }
-        },
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.8f)
-    )
+        }
+    }
 }
 
 @Composable
@@ -1422,9 +1494,10 @@ fun MapLibrePickerView(
     val lifecycleOwner = LocalLifecycleOwner.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     
+    val mapTilerKey = "3cP8iNk1Zj2ghLvTv5eB"
     val styleUrl = if (isSatellite) 
-        "https://tiles.openfreemap.org/styles/liberty" // Estilo detallado
-        else "https://tiles.openfreemap.org/styles/bright"
+        "https://api.maptiler.com/maps/hybrid/style.json?key=$mapTilerKey"
+        else "https://api.maptiler.com/maps/streets-v2/style.json?key=$mapTilerKey"
 
     LaunchedEffect(isSatellite) {
         mapLibreMap?.setStyle(styleUrl)

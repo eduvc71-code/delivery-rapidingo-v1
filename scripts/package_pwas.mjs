@@ -37,6 +37,7 @@ const apps = [
     icon512: 'delivery-512.png'
   }
 ];
+const cacheSuffix = Date.now().toString(36);
 
 const mustExist = (filePath) => {
   if (!existsSync(filePath)) {
@@ -95,7 +96,7 @@ for (const app of apps) {
   const swPath = path.join(target, 'sw.js');
   let sw = readFileSync(swPath, 'utf8');
   sw = sw
-    .replace(/const CACHE_NAME = 'rapidingo-[^']+';/, `const CACHE_NAME = 'rapidingo-${app.folder}-v1';`)
+    .replace(/const CACHE_NAME = 'rapidingo-[^']+';/, `const CACHE_NAME = 'rapidingo-${app.folder}-${cacheSuffix}';`)
     .replace(/\s*'\.\/manifest-client\.json',\r?\n/g, '')
     .replace(/\s*'\.\/manifest-delivery\.json',\r?\n/g, '')
     .replace(/\s*'\.\/icons\/icon-192\.png',\r?\n/g, '')

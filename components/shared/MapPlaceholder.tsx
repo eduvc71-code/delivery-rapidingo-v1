@@ -6,8 +6,6 @@ interface MapPlaceholderProps {
   isDeliveryView?: boolean;
 }
 
-declare const L: any; // Leaflet global
-
 const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ order, isDeliveryView }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMap = useRef<any>(null);
@@ -17,6 +15,7 @@ const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ order, isDeliveryView }
   const routeLine = useRef<any>(null);
 
   useEffect(() => {
+    const L = (window as Window & { L?: any }).L;
     if (!mapRef.current || !L) return;
 
     // Initialize map if not already done
@@ -26,8 +25,10 @@ const MapPlaceholder: React.FC<MapPlaceholderProps> = ({ order, isDeliveryView }
         rotate: false // Deshabilitar rotación manual
       }).setView([order.location.lat || -12.046374, order.location.lng || -77.042793], 15);
 
-      // FORZAR NORTE
-      leafletMap.current.setBearing(0);
+      // Some Leaflet rotation plugins expose setBearing; plain Leaflet does not.
+      if (typeof leafletMap.current.setBearing === 'function') {
+        leafletMap.current.setBearing(0);
+      }
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'

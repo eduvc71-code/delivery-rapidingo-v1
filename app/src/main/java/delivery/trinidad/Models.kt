@@ -110,6 +110,7 @@ data class Restaurant(
     val address: String,
     val schedule: String,
     val logoUrl: String? = null,
+    val menuUrl: String? = null,
     val logoColor: Long = 0xFFD32F2F // Usamos Long para color hexadecimal en lugar de Compose Color en el modelo serializable
 )
 

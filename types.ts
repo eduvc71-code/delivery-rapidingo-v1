@@ -16,6 +16,22 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED'
 }
 
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  [OrderStatus.DRAFT]: 'BORRADOR',
+  [OrderStatus.PENDING_PRICE]: 'ESPERANDO REPARTIDOR',
+  [OrderStatus.BIDDING]: 'COTIZANDO PRECIO',
+  [OrderStatus.WAITING_CONFIRM]: 'ESPERANDO TU CONFIRMACION',
+  [OrderStatus.CONFIRMED_BY_CLIENT]: 'PEDIDO CONFIRMADO',
+  [OrderStatus.PICKING_UP]: 'COMPRANDO PRODUCTOS',
+  [OrderStatus.IN_DELIVERY]: 'EN RUTA DE ENTREGA',
+  [OrderStatus.DELIVERED_BY_REPARTIDOR]: 'REPARTIDOR LLEGO',
+  [OrderStatus.COMPLETED]: 'PEDIDO COMPLETADO',
+  [OrderStatus.CANCELLED]: 'PEDIDO CANCELADO'
+};
+
+export const getOrderStatusLabel = (status?: OrderStatus) =>
+  status ? ORDER_STATUS_LABELS[status] || status : '';
+
 export enum OrderType {
   RESTAURANT = 'Restaurant',
   SUPERMARKET = 'Supermercado',
