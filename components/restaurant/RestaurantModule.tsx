@@ -345,18 +345,22 @@ export const RestaurantModule: React.FC = () => {
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-orange via-brand-yellow to-brand-orange"></div>
                 
                 <div className="flex flex-col items-center text-center space-y-3">
-                  <div 
-                    className="w-20 h-20 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
-                    style={{
-                      transform: `scale(${0.6 + passwordProgress * 0.4})`,
-                      opacity: 0.3 + passwordProgress * 0.7
-                    }}
-                  >
-                    <img src={selectedPartnerForAuth.logoUrl} alt={selectedPartnerForAuth.name} className="w-full h-full object-cover" />
-                  </div>
                   <div>
-                    <h3 className="text-lg font-black uppercase text-white font-montserrat tracking-tight">{selectedPartnerForAuth.name}</h3>
+                    <h2 className="text-2xl font-black text-brand-orange font-montserrat tracking-tight italic">¡BIENVENIDO!</h2>
+                    <h3 className="text-lg font-black uppercase text-white font-montserrat tracking-tight mt-1">{selectedPartnerForAuth.name}</h3>
                     <p className="text-[10px] text-brand-yellow font-black uppercase tracking-[3px] font-teko italic mt-1">INGRESE CONTRASEÑA DE SEGURIDAD</p>
+                  </div>
+
+                  <div className="w-24 h-24 flex items-center justify-center relative my-2">
+                    <div 
+                      className="w-24 h-24 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
+                      style={{
+                        transform: `scale(${0.5 + passwordProgress * 0.5})`,
+                        opacity: passwordProgress,
+                      }}
+                    >
+                      <img src={selectedPartnerForAuth.logoUrl} alt={selectedPartnerForAuth.name} className="w-full h-full object-cover" />
+                    </div>
                   </div>
                 </div>
 
