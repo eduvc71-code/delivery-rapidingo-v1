@@ -335,39 +335,37 @@ const DestinationPickerModal: React.FC<{
     };
     setPoint(nextPoint);
     if (mapInstance.current) {
-      mapInstance.current.setView([lat, lng], 17);
+      mapInstance.current.easeTo({ center: [lng, lat], zoom: 17, pitch: 58, bearing: -18 });
     }
     if (markerInstance.current) {
-      markerInstance.current.setLatLng([lat, lng]);
+      markerInstance.current.setLngLat([lng, lat]);
     }
     setSuggestions([]);
     setSearchQuery('');
   };
 
   useEffect(() => {
-    const L = (window as Window & { L?: any }).L;
-    if (!mapRef.current || !L) return;
+    const maplibregl = (window as Window & { maplibregl?: any }).maplibregl;
+    if (!mapRef.current || !maplibregl) return;
 
-    const map = L.map(mapRef.current, {
-      zoomControl: false,
-      rotate: false
-    }).setView([initialPoint.lat, initialPoint.lng], 17);
+    const map = new maplibregl.Map({
+      container: mapRef.current,
+      style: `https://api.maptiler.com/maps/${isSatellite ? 'hybrid' : 'streets-v2'}/style.json?key=${MAPTILER_KEY}`,
+      center: [initialPoint.lng, initialPoint.lat],
+      zoom: 17,
+      pitch: 58,
+      bearing: -18,
+      attributionControl: false
+    });
     mapInstance.current = map;
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
-    if (typeof map.setBearing === 'function') {
-      map.setBearing(0);
-    }
-
-    const baseLayer = L.tileLayer(
-      isSatellite
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        attribution: isSatellite ? 'Tiles &copy; Esri' : '&copy; OpenStreetMap contributors'
-      }
-    ).addTo(map);
-
-    const marker = L.marker([initialPoint.lat, initialPoint.lng], { draggable: true }).addTo(map);
+    const markerEl = document.createElement('div');
+    markerEl.className = 'h-10 w-10 rounded-full bg-brand-orange border-2 border-white shadow-2xl flex items-center justify-center';
+    markerEl.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+    const marker = new maplibregl.Marker({ element: markerEl, draggable: true, anchor: 'bottom' })
+      .setLngLat([initialPoint.lng, initialPoint.lat])
+      .addTo(map);
     markerInstance.current = marker;
 
     const updatePoint = (lat: number, lng: number) => {
@@ -377,19 +375,19 @@ const DestinationPickerModal: React.FC<{
         address: isAlternative ? 'Otra ubicacion de entrega' : 'Mi ubicacion actual'
       };
       setPoint(nextPoint);
-      marker.setLatLng([lat, lng]);
+      marker.setLngLat([lng, lat]);
     };
 
     marker.on('dragend', () => {
-      const next = marker.getLatLng();
+      const next = marker.getLngLat();
       updatePoint(next.lat, next.lng);
     });
 
     map.on('click', (event: any) => {
-      updatePoint(event.latlng.lat, event.latlng.lng);
+      updatePoint(event.lngLat.lat, event.lngLat.lng);
     });
 
-    setTimeout(() => map.invalidateSize(), 120);
+    setTimeout(() => map.resize(), 120);
 
     return () => {
       map.remove();

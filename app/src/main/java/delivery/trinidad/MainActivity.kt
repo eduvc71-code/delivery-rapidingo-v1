@@ -2214,6 +2214,57 @@ private fun parseQuoteRows(description: String?): List<QuoteRow> {
     return rows
 }
 
+data class RestaurantProgress(
+    val restaurantId: String,
+    val restaurant: String,
+    val status: String,
+    val prepTime: Int,
+    val timestamp: Long
+)
+
+private fun resolveRestaurantId(restaurantName: String): String {
+    return when (restaurantName.trim().lowercase()) {
+        "wings & drinks" -> "wings_drinks"
+        "el brete churrasqueria" -> "el_brete"
+        "la toscana centro" -> "la_toscana_1"
+        "la toscana - tablitas" -> "la_toscana_2"
+        "la plazuela j&c" -> "la_plazuela"
+        "la coqueta" -> "la_coqueta"
+        "mr. grill" -> "mr_grill"
+        "restaurante el benianito" -> "el_benianito"
+        "toby - cuarto de libra" -> "toby"
+        "la toscana - rapido" -> "la_toscana_rapido"
+        else -> restaurantName.trim().lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+    }
+}
+
+private fun getRestaurantProgress(order: Order, restaurantId: String, restaurantName: String): RestaurantProgress {
+    var status = "PENDING"
+    var prepTime = 0
+    var timestamp = 0L
+
+    order.chatHistory.forEach { msg ->
+        val parts = msg.text.split(":")
+        if (parts.size >= 3 && parts[0] == "RESTAURANT_STATUS" && parts[1] == restaurantId) {
+            status = parts[2]
+            if (status == "ACCEPTED" && parts.size >= 4) prepTime = parts[3].toIntOrNull() ?: 0
+            timestamp = msg.timestamp
+        }
+    }
+
+    return RestaurantProgress(restaurantId, restaurantName, status, prepTime, timestamp)
+}
+
+private fun buildRestaurantProgress(order: Order, rows: List<QuoteRow>): List<RestaurantProgress> {
+    return rows
+        .map { it.restaurant }
+        .distinct()
+        .map { restaurantName ->
+            val restaurantId = resolveRestaurantId(restaurantName)
+            getRestaurantProgress(order, restaurantId, restaurantName)
+        }
+}
+
 @Composable
 fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String, onPChange: (String) -> Unit, onSChange: (String) -> Unit, onOpenChat: () -> Unit) {
     val order = viewModel.activeOrder ?: return
@@ -2221,6 +2272,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
     val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
     
     val quoteRows = remember(order.id, order.description) { parseQuoteRows(order.description) }
+    val restaurantProgress = remember(order.id, order.chatHistory, quoteRows) { buildRestaurantProgress(order, quoteRows) }
     val unitPrices = remember(order.id) { mutableStateMapOf<Int, String>() }
 
     val calculatedProductTotal = quoteRows.indices.sumOf { index ->
@@ -2427,8 +2479,45 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                     OrderStatus.PICKING_UP -> {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (isFoodOrder) {
-                                Surface(modifier = Modifier.fillMaxWidth(), color = ApkBrandPanelSoft, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, ApkBrandBorder)) {
-                                    Text("ESPERANDO DESPACHO DEL RESTAURANTE", color = ApkBrandYellow, modifier = Modifier.padding(16.dp), fontSize = 13.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                if (restaurantProgress.isEmpty()) {
+                                    Surface(modifier = Modifier.fillMaxWidth(), color = ApkBrandPanelSoft, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, ApkBrandBorder)) {
+                                        Text("ESPERANDO DESPACHO DEL RESTAURANTE", color = ApkBrandYellow, modifier = Modifier.padding(16.dp), fontSize = 13.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                    }
+                                } else {
+                                    restaurantProgress.forEach { progress ->
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(14.dp),
+                                            colors = CardDefaults.cardColors(containerColor = ApkBrandPanelSoft),
+                                            border = BorderStroke(1.dp, ApkBrandBorder)
+                                        ) {
+                                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(progress.restaurant.uppercase(), color = ApkBrandYellow, fontSize = 12.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                                when (progress.status) {
+                                                    "PENDING" -> Text("ESPERANDO QUE ACEPTE SU PARTE", color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                                                    "ACCEPTED" -> Text("ACEPTADO: ${progress.prepTime.toString().padStart(2, '0')} MIN", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                                    "READY" -> {
+                                                        Text("PEDIDO LISTO", color = ApkBrandOrange, fontSize = 15.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                                        Button(
+                                                            onClick = {
+                                                                val allPickedUp = restaurantProgress.all { it.restaurantId == progress.restaurantId || it.status == "DELIVERED" }
+                                                                viewModel.addChatMessage("RESTAURANT_STATUS:${progress.restaurantId}:DELIVERED", "system")
+                                                                viewModel.addChatMessage("Delivery recibio el pedido de ${progress.restaurant}", "system")
+                                                                if (allPickedUp) viewModel.updateOrderStatus(OrderStatus.IN_DELIVERY)
+                                                            },
+                                                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
+                                                        ) {
+                                                            Text("RECIBI ESTE PEDIDO", fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color.White)
+                                                        }
+                                                    }
+                                                    "DELIVERED" -> Text("RECOJO CONFIRMADO", color = Color(0xFF2E7D32), fontSize = 13.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                                    else -> Text("ESPERANDO ACTUALIZACION", color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             } else {
                                 Button(

@@ -47,22 +47,34 @@ const parseRestaurantItems = (description: string, restaurantName: string): stri
   return items;
 };
 
-const getRestaurantStatus = (order: Order) => {
+const getRestaurantStatus = (order: Order, restaurantId?: string) => {
   let status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERED' = 'PENDING';
   let prepTime = 0;
   let timestamp = 0;
 
   if (order.chatHistory) {
     for (const msg of order.chatHistory) {
-      if (msg.isSystem) {
-        if (msg.text.startsWith('RESTAURANT_STATUS:ACCEPTED:')) {
+      if (msg.isSystem || msg.text.startsWith('RESTAURANT_STATUS:')) {
+        const parts = msg.text.split(':');
+        const isScopedStatus = parts[0] === 'RESTAURANT_STATUS' && parts[1] === restaurantId;
+        if (isScopedStatus && parts[2] === 'ACCEPTED') {
           status = 'ACCEPTED';
-          prepTime = parseInt(msg.text.split(':')[2]) || 0;
+          prepTime = parseInt(parts[3]) || 0;
           timestamp = msg.timestamp;
-        } else if (msg.text === 'RESTAURANT_STATUS:READY') {
+        } else if (isScopedStatus && parts[2] === 'READY') {
           status = 'READY';
           timestamp = msg.timestamp;
-        } else if (msg.text === 'RESTAURANT_STATUS:DELIVERED') {
+        } else if (isScopedStatus && parts[2] === 'DELIVERED') {
+          status = 'DELIVERED';
+          timestamp = msg.timestamp;
+        } else if (!restaurantId && msg.text.startsWith('RESTAURANT_STATUS:ACCEPTED:')) {
+          status = 'ACCEPTED';
+          prepTime = parseInt(parts[2]) || 0;
+          timestamp = msg.timestamp;
+        } else if (!restaurantId && msg.text === 'RESTAURANT_STATUS:READY') {
+          status = 'READY';
+          timestamp = msg.timestamp;
+        } else if (!restaurantId && msg.text === 'RESTAURANT_STATUS:DELIVERED') {
           status = 'DELIVERED';
           timestamp = msg.timestamp;
         }
@@ -125,11 +137,11 @@ const getPasswordProgress = (typed: string, correct: string): number => {
 
 export const RestaurantModule: React.FC = () => {
   const { allOrders, restaurantUser, registerUser, logout, updateOrder, playNotificationSound } = useApp();
-  const [activeTab, setActiveTab] = useState<'INCOMING' | 'PROCESS' | 'DISPATCH' | 'HISTORY'>('INCOMING');
+  const [activeTab, setActiveTab] = useState<'INCOMING' | 'PREPARING' | 'READY' | 'HISTORY'>('INCOMING');
   const [localHistory, setLocalHistory] = useState<any[]>([]);
 
-  // Prep Time selector per orderId state
-  const [selectedPrepTimes, setSelectedPrepTimes] = useState<Record<string, number>>({});
+  // Prep time per orderId. Two digits represent minutes.
+  const [selectedPrepTimes, setSelectedPrepTimes] = useState<Record<string, string>>({});
 
   // Auth states
   const [authPassword, setAuthPassword] = useState('');
@@ -144,7 +156,12 @@ export const RestaurantModule: React.FC = () => {
   }, [restaurantUser?.id]);
 
   const saveToHistory = (order: Order, prepMinutes: number) => {
+    if (!restaurantUser) return;
+    const historyId = `${order.id}-${restaurantUser.id}`;
+    if (localHistory.some((entry) => entry.historyId === historyId)) return;
+
     const newEntry = {
+      historyId,
       id: order.id,
       date: new Date().toLocaleString(),
       items: parseRestaurantItems(order.description, restaurantUser?.name || ''),
@@ -168,24 +185,34 @@ export const RestaurantModule: React.FC = () => {
   // Tab filtering
   const incomingOrders = useMemo(() => {
     return restaurantOrders.filter(order => {
-      const { status } = getRestaurantStatus(order);
+      const { status } = getRestaurantStatus(order, restaurantUser?.id);
       return order.status === OrderStatus.PICKING_UP && status === 'PENDING';
     });
-  }, [restaurantOrders]);
+  }, [restaurantOrders, restaurantUser?.id]);
 
-  const processOrders = useMemo(() => {
+  const preparingOrders = useMemo(() => {
     return restaurantOrders.filter(order => {
-      const { status } = getRestaurantStatus(order);
+      const { status } = getRestaurantStatus(order, restaurantUser?.id);
       return order.status === OrderStatus.PICKING_UP && status === 'ACCEPTED';
     });
-  }, [restaurantOrders]);
+  }, [restaurantOrders, restaurantUser?.id]);
 
-  const dispatchOrders = useMemo(() => {
+  const readyOrders = useMemo(() => {
     return restaurantOrders.filter(order => {
-      const { status } = getRestaurantStatus(order);
+      const { status } = getRestaurantStatus(order, restaurantUser?.id);
       return order.status === OrderStatus.PICKING_UP && status === 'READY';
     });
-  }, [restaurantOrders]);
+  }, [restaurantOrders, restaurantUser?.id]);
+
+  useEffect(() => {
+    if (!restaurantUser) return;
+    restaurantOrders.forEach((order) => {
+      const { status, prepTime } = getRestaurantStatus(order, restaurantUser.id);
+      if (status === 'DELIVERED') {
+        saveToHistory(order, prepTime);
+      }
+    });
+  }, [restaurantOrders, restaurantUser?.id, localHistory.length]);
 
   // Trigger sound on new incoming order
   const prevIncomingCount = React.useRef(incomingOrders.length);
@@ -234,11 +261,12 @@ export const RestaurantModule: React.FC = () => {
 
   // Accept Order
   const handleAcceptOrder = (order: Order) => {
-    const prepMinutes = selectedPrepTimes[order.id] || 15;
+    if (!restaurantUser) return;
+    const prepMinutes = Math.min(99, Math.max(1, parseInt(selectedPrepTimes[order.id] || '15') || 15));
     const systemMsg: ChatMessage = {
       id: `sys-accept-${Date.now()}`,
       senderId: 'system',
-      text: `RESTAURANT_STATUS:ACCEPTED:${prepMinutes}`,
+      text: `RESTAURANT_STATUS:${restaurantUser.id}:ACCEPTED:${prepMinutes}`,
       timestamp: Date.now(),
       isSystem: true
     };
@@ -258,10 +286,11 @@ export const RestaurantModule: React.FC = () => {
 
   // Mark Ready (¡PEDIDO LISTO!)
   const handleMarkReady = (order: Order) => {
+    if (!restaurantUser) return;
     const systemMsg: ChatMessage = {
       id: `sys-ready-${Date.now()}`,
       senderId: 'system',
-      text: `RESTAURANT_STATUS:READY`,
+      text: `RESTAURANT_STATUS:${restaurantUser.id}:READY`,
       timestamp: Date.now(),
       isSystem: true
     };
@@ -275,33 +304,6 @@ export const RestaurantModule: React.FC = () => {
 
     updateOrder({
       ...order,
-      chatHistory: [...(order.chatHistory || []), systemMsg, notificationMsg]
-    });
-  };
-
-  // Mark Delivered to Driver (Entregado)
-  const handleMarkDelivered = (order: Order) => {
-    const { prepTime } = getRestaurantStatus(order);
-    saveToHistory(order, prepTime);
-
-    const systemMsg: ChatMessage = {
-      id: `sys-delivered-${Date.now()}`,
-      senderId: 'system',
-      text: `RESTAURANT_STATUS:DELIVERED`,
-      timestamp: Date.now(),
-      isSystem: true
-    };
-    const notificationMsg: ChatMessage = {
-      id: `sys-notif-deliv-${Date.now()}`,
-      senderId: 'system',
-      text: `Pedido retirado de ${restaurantUser?.name} por el repartidor.`,
-      timestamp: Date.now(),
-      isSystem: true
-    };
-
-    updateOrder({
-      ...order,
-      status: OrderStatus.IN_DELIVERY, // transition delivery driver to routing!
       chatHistory: [...(order.chatHistory || []), systemMsg, notificationMsg]
     });
   };
@@ -467,24 +469,24 @@ export const RestaurantModule: React.FC = () => {
             )}
           </button>
           <button 
-            onClick={() => setActiveTab('PROCESS')} 
-            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'PROCESS' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('PREPARING')} 
+            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'PREPARING' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
-            EN PROCESO
-            {processOrders.length > 0 && (
+            PREPARANDO
+            {preparingOrders.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-yellow text-brand-black rounded-full flex items-center justify-center text-[8px] font-black">
-                {processOrders.length}
+                {preparingOrders.length}
               </span>
             )}
           </button>
           <button 
-            onClick={() => setActiveTab('DISPATCH')} 
-            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'DISPATCH' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('READY')} 
+            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'READY' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
-            DESPACHOS
-            {dispatchOrders.length > 0 && (
+            LISTOS
+            {readyOrders.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 rounded-full flex items-center justify-center text-[8px] font-bold text-white">
-                {dispatchOrders.length}
+                {readyOrders.length}
               </span>
             )}
           </button>
@@ -503,7 +505,7 @@ export const RestaurantModule: React.FC = () => {
           <div className="space-y-4 animate-in fade-in duration-300">
             {incomingOrders.map(order => {
               const items = parseRestaurantItems(order.description, restaurantUser.name);
-              const prepVal = selectedPrepTimes[order.id] || 15;
+              const prepVal = selectedPrepTimes[order.id] || '15';
 
               return (
                 <div key={order.id} className="bg-brand-black/90 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-4 relative overflow-hidden group">
@@ -538,19 +540,24 @@ export const RestaurantModule: React.FC = () => {
 
                   {/* Prep Time Selector */}
                   <div className="space-y-2 ml-2">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest font-teko italic text-gray-400">
+                    <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-widest font-teko italic text-gray-400">
                       <span>Tiempo estimado:</span>
-                      <span className="text-brand-orange">{prepVal} minutos</span>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={2}
+                          value={prepVal.padStart(2, '0')}
+                          onChange={(e) => {
+                            const next = e.target.value.replace(/\D/g, '').slice(0, 2);
+                            setSelectedPrepTimes({ ...selectedPrepTimes, [order.id]: next });
+                          }}
+                          className="w-16 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-center text-lg font-black text-brand-orange outline-none focus:border-brand-orange font-montserrat"
+                        />
+                        <span className="text-brand-orange">min</span>
+                      </label>
                     </div>
-                    <input 
-                      type="range" 
-                      min="5" 
-                      max="45" 
-                      step="5" 
-                      value={prepVal} 
-                      onChange={(e) => setSelectedPrepTimes({ ...selectedPrepTimes, [order.id]: parseInt(e.target.value) })}
-                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-orange" 
-                    />
                   </div>
 
                   <button
@@ -573,11 +580,11 @@ export const RestaurantModule: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'PROCESS' && (
+        {activeTab === 'PREPARING' && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {processOrders.map(order => {
+            {preparingOrders.map(order => {
               const items = parseRestaurantItems(order.description, restaurantUser.name);
-              const { prepTime, timestamp } = getRestaurantStatus(order);
+              const { prepTime, timestamp } = getRestaurantStatus(order, restaurantUser.id);
 
               return (
                 <div key={order.id} className="bg-brand-black/90 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-4 relative overflow-hidden group">
@@ -616,18 +623,18 @@ export const RestaurantModule: React.FC = () => {
               );
             })}
 
-            {processOrders.length === 0 && (
+            {preparingOrders.length === 0 && (
               <div className="text-center py-20 text-gray-600">
                 <ChefHat size={48} className="mx-auto text-gray-700 mb-3" />
-                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay pedidos en proceso</p>
+                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay pedidos preparando</p>
               </div>
             )}
           </div>
         )}
 
-        {activeTab === 'DISPATCH' && (
+        {activeTab === 'READY' && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {dispatchOrders.map(order => {
+            {readyOrders.map(order => {
               const items = parseRestaurantItems(order.description, restaurantUser.name);
 
               return (
@@ -655,20 +662,17 @@ export const RestaurantModule: React.FC = () => {
                     </ul>
                   </div>
 
-                  <button
-                    onClick={() => handleMarkDelivered(order)}
-                    className="w-full bg-brand-orange hover:bg-brand-orange/90 active:scale-[0.98] text-white py-4 rounded-2xl font-black transition-all shadow-[0_8px_20px_rgba(255,106,0,0.2)] text-sm tracking-[3px] font-teko uppercase italic"
-                  >
-                    ENTREGADO A DELIVERY
-                  </button>
+                  <div className="w-full bg-white/5 border border-white/10 text-gray-300 py-4 rounded-2xl font-black text-center text-[11px] tracking-[2px] font-teko uppercase italic">
+                    Esperando que delivery confirme recojo
+                  </div>
                 </div>
               );
             })}
 
-            {dispatchOrders.length === 0 && (
+            {readyOrders.length === 0 && (
               <div className="text-center py-20 text-gray-600">
                 <CheckCircle size={48} className="mx-auto text-gray-700 mb-3" />
-                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay despachos pendientes</p>
+                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay pedidos listos</p>
               </div>
             )}
           </div>

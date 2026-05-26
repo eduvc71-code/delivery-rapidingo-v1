@@ -10,11 +10,36 @@ import {
 import MapPlaceholder from '../shared/MapPlaceholder';
 
 type QuoteRow = {
+  restaurantId: string;
   restaurant: string;
   item: string;
   quantity: number;
   unitPrice: string;
 };
+
+type RestaurantProgress = {
+  restaurantId: string;
+  restaurant: string;
+  status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERED';
+  prepTime: number;
+  timestamp: number;
+};
+
+const RESTAURANT_ID_BY_NAME: Record<string, string> = {
+  'wings & drinks': 'wings_drinks',
+  'el brete churrasqueria': 'el_brete',
+  'la toscana centro': 'la_toscana_1',
+  'la toscana - tablitas': 'la_toscana_2',
+  'la plazuela j&c': 'la_plazuela',
+  'la coqueta': 'la_coqueta',
+  'mr. grill': 'mr_grill',
+  'restaurante el benianito': 'el_benianito',
+  'toby - cuarto de libra': 'toby',
+  'la toscana - rapido': 'la_toscana_rapido'
+};
+
+const resolveRestaurantId = (restaurantName: string) =>
+  RESTAURANT_ID_BY_NAME[restaurantName.trim().toLowerCase()] || restaurantName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
 const hasWhatsAppPhone = (phone?: string) => /\d/.test(phone || '');
 
@@ -44,6 +69,7 @@ const parseQuoteRows = (description?: string): QuoteRow[] => {
     const itemMatch = line.match(/^-\s*(.+?)\s+x(\d+)\s*$/i);
     if (itemMatch) {
       rows.push({
+        restaurantId: resolveRestaurantId(currentRestaurant),
         restaurant: currentRestaurant,
         item: itemMatch[1].trim(),
         quantity: Math.max(1, Number(itemMatch[2] || 1)),
@@ -54,6 +80,7 @@ const parseQuoteRows = (description?: string): QuoteRow[] => {
 
   if (rows.length === 0 && description?.trim()) {
     rows.push({
+      restaurantId: 'pedido',
       restaurant: 'Pedido',
       item: description.trim(),
       quantity: 1,
@@ -64,22 +91,24 @@ const parseQuoteRows = (description?: string): QuoteRow[] => {
   return rows;
 };
 
-const getRestaurantStatus = (order: Order) => {
+const getRestaurantStatus = (order: Order, restaurantId: string) => {
   let status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERED' = 'PENDING';
   let prepTime = 0;
   let timestamp = 0;
 
   if (order.chatHistory) {
     for (const msg of order.chatHistory) {
-      if (msg.isSystem) {
-        if (msg.text.startsWith('RESTAURANT_STATUS:ACCEPTED:')) {
+      if (msg.isSystem || msg.text.startsWith('RESTAURANT_STATUS:')) {
+        const parts = msg.text.split(':');
+        const isScopedStatus = parts[0] === 'RESTAURANT_STATUS' && parts[1] === restaurantId;
+        if (isScopedStatus && parts[2] === 'ACCEPTED') {
           status = 'ACCEPTED';
-          prepTime = parseInt(msg.text.split(':')[2]) || 0;
+          prepTime = parseInt(parts[3]) || 0;
           timestamp = msg.timestamp;
-        } else if (msg.text === 'RESTAURANT_STATUS:READY') {
+        } else if (isScopedStatus && parts[2] === 'READY') {
           status = 'READY';
           timestamp = msg.timestamp;
-        } else if (msg.text === 'RESTAURANT_STATUS:DELIVERED') {
+        } else if (isScopedStatus && parts[2] === 'DELIVERED') {
           status = 'DELIVERED';
           timestamp = msg.timestamp;
         }
@@ -164,13 +193,23 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
   const quotedServiceCost = parseFloat(serviceCost);
   const quotedGrandTotal = quotedProductTotal + (isNaN(quotedServiceCost) ? 0 : quotedServiceCost);
 
-  const restStatus = useMemo(() => {
+  const activeRestaurantRows = useMemo(() => {
     if (!activeOrder) return null;
-    const isRestaurant = activeOrder.description.toUpperCase().includes('RESTAURANTE:');
-    if (!isRestaurant) return null;
-    return getRestaurantStatus(activeOrder);
+    const rows = parseQuoteRows(activeOrder.description);
+    return rows.filter((row) => row.restaurantId !== 'pedido');
   }, [activeOrder]);
-  const activeOrderIsRestaurant = Boolean(restStatus);
+  const restaurantProgress = useMemo<RestaurantProgress[]>(() => {
+    if (!activeOrder || !activeRestaurantRows?.length) return [];
+    const groups = new Map<string, string>();
+    activeRestaurantRows.forEach((row) => groups.set(row.restaurantId, row.restaurant));
+    return Array.from(groups.entries()).map(([restaurantId, restaurant]) => ({
+      restaurantId,
+      restaurant,
+      ...getRestaurantStatus(activeOrder, restaurantId)
+    }));
+  }, [activeOrder, activeRestaurantRows]);
+  const activeOrderIsRestaurant = restaurantProgress.length > 0;
+  const restStatus = restaurantProgress[0] || null;
 
   useEffect(() => {
     if (!activeOrder) {
@@ -269,6 +308,34 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
     }
 
     window.open(`https://waze.com/ul?ll=${destination.lat},${destination.lng}&navigate=yes`, '_blank');
+  };
+
+  const handleConfirmRestaurantPickup = (restaurant: RestaurantProgress) => {
+    if (!activeOrder) return;
+    const now = Date.now();
+    const systemMsg: ChatMessage = {
+      id: `sys-pickup-${restaurant.restaurantId}-${now}`,
+      senderId: 'system',
+      text: `RESTAURANT_STATUS:${restaurant.restaurantId}:DELIVERED`,
+      timestamp: now,
+      isSystem: true
+    };
+    const notificationMsg: ChatMessage = {
+      id: `sys-notif-pickup-${restaurant.restaurantId}-${now}`,
+      senderId: 'system',
+      text: `Delivery recibio el pedido de ${restaurant.restaurant}.`,
+      timestamp: now,
+      isSystem: true
+    };
+    const allPickedUp = restaurantProgress.every((progress) => (
+      progress.restaurantId === restaurant.restaurantId || progress.status === 'DELIVERED'
+    ));
+
+    updateOrder({
+      ...activeOrder,
+      status: allPickedUp ? OrderStatus.IN_DELIVERY : OrderStatus.PICKING_UP,
+      chatHistory: [...(activeOrder.chatHistory || []), systemMsg, notificationMsg]
+    });
   };
 
   if (!deliveryUser) return null;
@@ -434,7 +501,39 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
 
                 {activeOrder.status === OrderStatus.PICKING_UP && (
                    <div className="space-y-4 w-full">
-                     {restStatus && (
+                     {activeOrderIsRestaurant && restaurantProgress.map((restaurant) => (
+                       <div key={restaurant.restaurantId} className="bg-brand-black/95 p-5 rounded-[24px] border border-white/5 text-center space-y-3 shadow-2xl relative overflow-hidden">
+                         <div className={`absolute top-0 left-0 w-full h-1 ${restaurant.status === 'READY' ? 'bg-brand-orange' : restaurant.status === 'DELIVERED' ? 'bg-[#2E7D32]' : 'bg-brand-yellow'}`}></div>
+                         <p className="text-[10px] font-black text-brand-yellow uppercase tracking-[3px] font-teko italic">{restaurant.restaurant}</p>
+
+                         {restaurant.status === 'PENDING' && (
+                           <p className="text-xs font-bold text-gray-400 leading-relaxed font-montserrat">Esperando que este restaurante acepte su parte del pedido.</p>
+                         )}
+                         {restaurant.status === 'ACCEPTED' && (
+                           <div>
+                             <p className="text-xs font-bold text-gray-400 font-montserrat">TIEMPO ESTIMADO RESTANTE:</p>
+                             <DriverCountdownTimer acceptedAt={restaurant.timestamp} prepDurationMinutes={restaurant.prepTime} />
+                           </div>
+                         )}
+                         {restaurant.status === 'READY' && (
+                           <div className="space-y-3">
+                             <p className="text-xl font-black text-brand-orange uppercase tracking-[4px] font-teko italic">PEDIDO LISTO</p>
+                             <button
+                               onClick={() => handleConfirmRestaurantPickup(restaurant)}
+                               className="w-full bg-brand-orange text-white py-4 rounded-2xl font-black font-teko italic text-sm uppercase tracking-[3px] shadow-[0_0_20px_rgba(255,106,0,0.3)] active:scale-95 transition-all"
+                             >
+                               RECIBI ESTE PEDIDO
+                             </button>
+                           </div>
+                         )}
+                         {restaurant.status === 'DELIVERED' && (
+                           <div className="bg-[#2E7D32]/10 border border-[#2E7D32]/30 p-4 rounded-[18px] text-center space-y-1">
+                             <p className="text-[10px] font-black text-[#2E7D32] uppercase tracking-[3px] font-teko italic">RECOJO CONFIRMADO</p>
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                     {false && (
                        <>
                          {restStatus.status === 'PENDING' && (
                            <div className="bg-brand-black/90 p-5 rounded-[22px] border border-white/5 text-center space-y-2">
