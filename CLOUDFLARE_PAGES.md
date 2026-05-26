@@ -56,6 +56,25 @@ URL inicial esperada:
 https://rapidingo-delivery.pages.dev
 ```
 
+### Proyecto Restaurante
+
+- Project name: `rapidingo-restaurante`
+- Repository: `eduvc71-code/delivery-rapidingo-v1`
+- Production branch: `main`
+- Build command: `npm run build:pwas`
+- Build output directory: `dist/restaurante`
+- Root directory: dejar vacio
+- Environment variables:
+  - `NODE_VERSION=20`
+  - `VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY=TU_ANON_KEY`
+
+URL inicial esperada:
+
+```text
+https://rapidingo-restaurante.pages.dev
+```
+
 ## Opcion manual: Direct Upload
 
 Si no quieres conectar GitHub todavia:
