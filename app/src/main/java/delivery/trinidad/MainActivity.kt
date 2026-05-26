@@ -752,15 +752,6 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
     var showDestinationPicker by remember { mutableStateOf(false) }
     var isLocationConfirmedByUser by remember { mutableStateOf(false) }
     var showLocationConfirmDialog by remember { mutableStateOf(false) }
-    var flashActive by remember { mutableStateOf(true) }
-    val flashColor by androidx.compose.animation.animateColorAsState(
-        targetValue = if (flashActive) ApkBrandOrange else Color.Transparent,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 1000)
-    )
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1000)
-        flashActive = false
-    }
     val availableDeliveries = viewModel.availableDeliveriesCount
     val clientName = viewModel.clientUser?.name ?: ""
     val context = LocalContext.current
@@ -933,12 +924,7 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                  placeholder = { Text("Escribe aquí lo que necesitas") },
                                  modifier = Modifier
                                      .fillMaxWidth()
-                                     .height(140.dp)
-                                     .border(
-                                         width = if (flashActive) 2.dp else 0.dp,
-                                         color = flashColor,
-                                         shape = RoundedCornerShape(22.dp)
-                                     ),
+                                     .height(140.dp),
                                  keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                  visualTransformation = UppercaseVisualTransformation,
                                  shape = RoundedCornerShape(22.dp),
@@ -950,7 +936,6 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                  modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
                                  colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
                                  elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                                 border = BorderStroke(1.dp, ApkBrandBorder),
                                  shape = RoundedCornerShape(22.dp)
                              ) {
                                  Column(modifier = Modifier.padding(12.dp)) {
@@ -968,12 +953,17 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                                  } else {
                                                      selectedDestination = null
                                                  }
-                                             }
+                                             },
+                                             colors = CheckboxDefaults.colors(
+                                                 checkedColor = ApkBrandOrange,
+                                                 uncheckedColor = Color.White,
+                                                 checkmarkColor = Color.White
+                                             )
                                          )
                                          Column {
-                                             Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
+                                             Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = ApkBrandOrange)
                                              val locDesc = if (!isLocationConfirmedByUser) "Confirma tu ubicación al pedir" else if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
-                                             Text(locDesc, color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                             Text(locDesc, color = ApkBrandYellow, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                          }
                                      }
                                  }
@@ -1660,7 +1650,7 @@ fun DestinationPickerDialog(
     var selectedPoint by remember(initialLocation) { mutableStateOf(initialLocation) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(24.dp), color = ApkBrandPanel, tonalElevation = 8.dp, border = BorderStroke(1.dp, ApkBrandBorder)) {
+        Surface(shape = RoundedCornerShape(24.dp), color = ApkBrandPanel, tonalElevation = 8.dp) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -1672,7 +1662,7 @@ fun DestinationPickerDialog(
                         Text("Mueve el mapa", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
                     }
                 }
                 
@@ -1715,14 +1705,18 @@ fun DestinationPickerDialog(
 
                 Text(
                     "Ubica el pin rojo en el punto exacto de entrega.",
-                    color = ApkBrandMuted,
+                    color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 )
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("CANCELAR", fontWeight = FontWeight.Bold)
+                    OutlinedButton(
+                        onClick = onDismiss, 
+                        modifier = Modifier.weight(1f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+                    ) {
+                        Text("CANCELAR", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                     Button(
                         onClick = { onConfirm(selectedPoint) },

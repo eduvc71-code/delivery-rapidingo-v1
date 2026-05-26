@@ -410,7 +410,7 @@ const DestinationPickerModal: React.FC<{
               Mueve el mapa
             </h3>
           </div>
-          <button onClick={onCancel} className="p-2.5 rounded-xl bg-white/5 text-gray-400 active:scale-90 transition-transform border border-white/10">
+          <button onClick={onCancel} className="p-2.5 rounded-xl bg-white/5 text-white active:scale-90 transition-transform border border-white/10">
             <X size={18} />
           </button>
         </div>
@@ -426,7 +426,7 @@ const DestinationPickerModal: React.FC<{
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Ej: Hospital Obrero, Plaza Principal..."
-              className="w-full pl-11 pr-4 py-3 bg-white/5 border-2 border-white/5 rounded-2xl text-sm font-bold text-white focus:border-brand-orange outline-none transition-all font-montserrat placeholder:text-gray-700 shadow-inner"
+              className="w-full pl-11 pr-4 py-3 bg-white/5 border-2 border-white/5 rounded-2xl text-sm font-bold text-white focus:border-brand-orange outline-none transition-all font-montserrat placeholder:text-white/40 shadow-inner"
             />
           </div>
 
@@ -436,7 +436,7 @@ const DestinationPickerModal: React.FC<{
                 <button
                   key={s.id}
                   onClick={() => selectSuggestion(s)}
-                  className="w-full text-left px-5 py-4 text-[11px] font-bold text-gray-300 hover:bg-white/5 border-b border-white/5 last:border-0 flex items-start gap-3 transition-colors group"
+                  className="w-full text-left px-5 py-4 text-[11px] font-bold text-white hover:bg-white/5 border-b border-white/5 last:border-0 flex items-start gap-3 transition-colors group"
                 >
                   <MapPin size={14} className="text-brand-orange shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                   <span className="font-montserrat uppercase tracking-tight">{s.place_name}</span>
@@ -464,7 +464,7 @@ const DestinationPickerModal: React.FC<{
         </div>
 
         <div className="p-5 grid grid-cols-2 gap-4 shrink-0 bg-brand-black border-t border-white/5">
-          <button onClick={onCancel} className="bg-white/5 text-gray-500 py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] font-teko italic border border-white/5 active:bg-white/10 transition-all">
+          <button onClick={onCancel} className="bg-white/5 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] font-teko italic border border-white/5 active:bg-white/10 transition-all">
             CANCELAR
           </button>
           <button onClick={() => onConfirm(point)} className="bg-brand-orange text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] font-teko italic shadow-[0_0_20px_rgba(255,106,0,0.3)] active:scale-95 transition-all">
@@ -1472,8 +1472,8 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                       className="mt-1 h-6 w-6 rounded-lg accent-brand-orange transition-transform active:scale-90 ring-2 ring-white/10"
                     />
                     <span>
-                      <span className="block text-base font-black text-white font-montserrat uppercase tracking-tight">Enviar a otra ubicación</span>
-                      <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest font-teko italic leading-tight mt-1">
+                      <span className="block text-base font-black text-brand-orange font-montserrat uppercase tracking-tight">Enviar a otra ubicación</span>
+                      <span className="block text-[10px] text-brand-yellow font-bold uppercase tracking-widest font-teko italic leading-tight mt-1">
                         {!isLocationConfirmedByUser
                           ? "Confirma tu ubicación al pedir"
                           : destinationPoint

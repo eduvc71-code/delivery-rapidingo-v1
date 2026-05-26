@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { User, Order, UserRole, OrderStatus, ChatMessage } from '../types';
 import { MOCK_HISTORY } from '../constants';
 import { SupabasePwaApi } from '../services/supabase';
@@ -31,6 +31,7 @@ interface AppContextType {
   showThankYouDialog: boolean;
   thankYouDialogMessage: string;
   setShowThankYouDialog: (show: boolean) => void;
+  playNotificationSound: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -554,13 +555,70 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const switchRole = (role: UserRole) => {};
 
+  const playNotificationSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.2, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+      
+      const now = ctx.currentTime;
+      playTone(587.33, now, 0.15); // D5
+      playTone(880.00, now + 0.1, 0.25); // A5
+    } catch (e) {
+      console.warn('Audio play failed:', e);
+    }
+  };
+
+  const isFirstLoadStatus = useRef(true);
+  const isFirstLoadChat = useRef(true);
+
+  // Sound on Order Status Change
+  useEffect(() => {
+    if (isFirstLoadStatus.current) {
+      isFirstLoadStatus.current = false;
+      return;
+    }
+    if (activeOrder?.status) {
+      playNotificationSound();
+    }
+  }, [activeOrder?.status]);
+
+  // Sound on New Chat Message
+  useEffect(() => {
+    if (isFirstLoadChat.current) {
+      isFirstLoadChat.current = false;
+      return;
+    }
+    if (activeOrder?.chatHistory && activeOrder.chatHistory.length > 0) {
+      const lastMsg = activeOrder.chatHistory[activeOrder.chatHistory.length - 1];
+      const currentUserId = appMode === UserRole.CLIENT ? clientUser?.id : (appMode === UserRole.RESTAURANT ? restaurantUser?.id : deliveryUser?.id);
+      if (lastMsg && lastMsg.senderId !== currentUserId) {
+        playNotificationSound();
+      }
+    }
+  }, [activeOrder?.chatHistory?.length]);
+
   return (
     <AppContext.Provider value={{
       clientUser, deliveryUser, restaurantUser, allOrders, currentUser, appMode, activeOrder, pastOrders,
       assignedDelivery, availableDeliveries, isCheckingSession,
       login, registerUser, logout, resetSimulation, selectAppMode, createOrder,
       updateOrder, addChatMessage, switchRole, updateCurrentUserPhone, updateCurrentUserLocation,
-      showThankYouDialog, thankYouDialogMessage, setShowThankYouDialog
+      showThankYouDialog, thankYouDialogMessage, setShowThankYouDialog, playNotificationSound
     }}>
       {children}
     </AppContext.Provider>

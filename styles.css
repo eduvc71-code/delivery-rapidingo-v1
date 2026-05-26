@@ -48,7 +48,3 @@
   opacity: 1 !important;
 }
 
-.high-contrast-input {
-  animation: placeholder-flash 0.5s ease-in-out 2;
-}
-
