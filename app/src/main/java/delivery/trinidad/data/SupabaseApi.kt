@@ -64,6 +64,17 @@ object SupabaseApi {
         return JSONArray(response).toObjectList(::parseUser)
     }
 
+    suspend fun getDispatchMode(): String {
+        return try {
+            val response = request("GET", "/rest/v1/config?key=eq.dispatch_mode&limit=1")
+            val array = JSONArray(response)
+            if (array.length() == 0) "AUTOMATIC" else array.getJSONObject(0).optString("value", "AUTOMATIC")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error obteniendo dispatch_mode: ${e.message}")
+            "AUTOMATIC"
+        }
+    }
+
     suspend fun getOrders(): List<Order> {
         val response = request("GET", "/rest/v1/orders?order=created_at.desc")
         return JSONArray(response).toObjectList(::parseOrder)

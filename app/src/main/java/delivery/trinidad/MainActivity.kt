@@ -2089,8 +2089,13 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
+                            val statusText = if (order.status == OrderStatus.PENDING_PRICE) {
+                                if (viewModel.dispatchMode == "OPERATOR") "ESPERANDO COTIZACION OPERADORA" else "ESPERANDO REPARTIDOR"
+                            } else {
+                                order.status.toSpanish().uppercase()
+                            }
                             Text(
-                                order.status.toSpanish().uppercase(), 
+                                statusText, 
                                 fontWeight = FontWeight.Black, 
                                 color = ApkBrandOrange,
                                 fontSize = 11.sp,

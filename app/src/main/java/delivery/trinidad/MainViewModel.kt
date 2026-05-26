@@ -37,6 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var deliveryUser by mutableStateOf<User?>(null)
     var activeOrder by mutableStateOf<Order?>(null)
     var currentMode by mutableStateOf<UserRole?>(null)
+    var dispatchMode by mutableStateOf("AUTOMATIC")
 
     var availableDeliveriesCount by mutableIntStateOf(0)
     var allDeliveryUsers by mutableStateOf<List<User>>(emptyList())
@@ -302,6 +303,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             runCatching {
+                SupabaseApi.getDispatchMode()
+            }.onSuccess { mode ->
+                dispatchMode = mode
+            }.onFailure {
+                Log.e("Rapidingo", "Error al inicializar dispatchMode: ${it.message}")
+            }
+
+            runCatching {
                 var savedUser: User? = null
                 for (candidateId in candidateIds) {
                     savedUser = SupabaseApi.getUser(candidateId)
@@ -448,8 +457,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         orderJob = viewModelScope.launch {
             while (true) {
                 runCatching {
+                    val mode = SupabaseApi.getDispatchMode()
+                    dispatchMode = mode
                     val sortedOrders = SupabaseApi.getOrders().sortedByDescending { it.createdAt }
-                    selectActiveOrder(user, sortedOrders)
+                    selectActiveOrder(user, sortedOrders, mode)
                 }.onFailure {
                     Log.e("Rapidingo", "Error observando ordenes Supabase: ${it.message}")
                 }
@@ -458,7 +469,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun selectActiveOrder(user: User, sortedOrders: List<Order>) {
+    private fun selectActiveOrder(user: User, sortedOrders: List<Order>, currentModeDispatch: String) {
         val previousActiveOrder = activeOrder
 
         activeOrder = if (user.role == UserRole.CLIENT) {
@@ -473,10 +484,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     it.status != OrderStatus.COMPLETED &&
                     it.status != OrderStatus.CANCELLED
             }
-            val availableOrder = sortedOrders.find {
-                it.status == OrderStatus.PENDING_PRICE &&
-                    (it.targetDeliveryId == user.id || it.targetDeliveryId.isNullOrBlank()) &&
-                    !it.rejectedBy.contains(user.id)
+            val availableOrder = if (currentModeDispatch == "AUTOMATIC") {
+                sortedOrders.find {
+                    it.status == OrderStatus.PENDING_PRICE &&
+                        (it.targetDeliveryId == user.id || it.targetDeliveryId.isNullOrBlank()) &&
+                        !it.rejectedBy.contains(user.id)
+                }
+            } else {
+                sortedOrders.find {
+                    it.status == OrderStatus.PENDING_PRICE &&
+                        it.targetDeliveryId == user.id &&
+                        !it.rejectedBy.contains(user.id)
+                }
             }
             myOrder ?: availableOrder
         }
@@ -777,7 +796,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             runCatching {
                 val orders = SupabaseApi.getOrders()
-                val targetDelivery = selectTargetDelivery(destinationLocation, orders)
+                val mode = SupabaseApi.getDispatchMode()
+                dispatchMode = mode
+                val targetDelivery = if (mode == "AUTOMATIC") {
+                    selectTargetDelivery(destinationLocation, orders)
+                } else {
+                    null
+                }
                 val order = Order(
                     id = orderId,
                     clientId = client.id,
