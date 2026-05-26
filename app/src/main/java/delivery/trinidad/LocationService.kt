@@ -108,6 +108,11 @@ class LocationService : Service() {
                 }
 
                 if (order.deliveryId == userId) {
+                    val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
+                    if (isFoodOrder && order.status != OrderStatus.IN_DELIVERY && order.status != OrderStatus.DELIVERED_BY_REPARTIDOR) {
+                        notifyOrderChanges(order, userId, user.role)
+                        return@launch
+                    }
                     val updates = JSONObject().put("delivery_location", latLng.toJson())
                     val lastLoc = order.deliveryPath.lastOrNull()
                     if (lastLoc == null || kotlin.math.abs(lastLoc.latitude - finalLat) > 0.00001) {

@@ -747,7 +747,6 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var expandDirectory by remember { mutableStateOf(false) }
     var sendToOtherLocation by remember { mutableStateOf(false) }
-    var destinationConfirmed by remember { mutableStateOf(false) }
     var selectedDestination by remember { mutableStateOf<MyLatLng?>(null) }
     var showDestinationPicker by remember { mutableStateOf(false) }
     var isLocationConfirmedByUser by remember { mutableStateOf(false) }
@@ -1031,7 +1030,16 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                         showLocationConfirmDialog = false
                         isLocationConfirmedByUser = true
                         val category = selectedCategory
-                        if (category != null && orderText.isNotBlank()) {
+                        if (category == "COMIDA" && viewModel.tempOrderItems.isNotEmpty()) {
+                            viewModel.confirmTempOrderAndCreate(
+                                viewModel.currentUserLocation ?: viewModel.clientUser?.location ?: MyLatLng(-14.8336, -64.9000)
+                            )
+                            selectedCategory = null
+                            sendToOtherLocation = false
+                            selectedDestination = null
+                            showSummaryDialog = false
+                            isLocationConfirmedByUser = false
+                        } else if (category != null && orderText.isNotBlank()) {
                             viewModel.createOrder(
                                 category,
                                 orderText.trim().uppercase(),
@@ -1083,6 +1091,25 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
     if (showSummaryDialog) {
         OrderSummaryDialog(
             items = viewModel.tempOrderItems,
+            isDeliveryLocationConfirmed = isLocationConfirmedByUser,
+            isOtherLocation = sendToOtherLocation,
+            deliveryLocationLabel = if (!isLocationConfirmedByUser) {
+                "Elige antes de confirmar el pedido"
+            } else if (sendToOtherLocation) {
+                "Enviar a otra ubicacion"
+            } else {
+                "Enviar a mi ubicacion actual"
+            },
+            onUseCurrentLocation = {
+                isLocationConfirmedByUser = true
+                sendToOtherLocation = false
+                selectedDestination = viewModel.currentUserLocation ?: viewModel.clientUser?.location ?: MyLatLng(-14.8336, -64.9000)
+            },
+            onUseOtherLocation = {
+                isLocationConfirmedByUser = true
+                sendToOtherLocation = true
+                showDestinationPicker = true
+            },
             onEditItem = { id ->
                 showSummaryDialog = false
                 val item = viewModel.tempOrderItems.find { it.id == id }
@@ -1093,7 +1120,17 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
             },
             onRemoveItem = { viewModel.removeTempItem(it) },
             onClearAll = { viewModel.clearTempOrder() },
-            onConfirmOrder = { viewModel.confirmTempOrderAndCreate() },
+            onConfirmOrder = {
+                if (!isLocationConfirmedByUser) {
+                    showLocationConfirmDialog = true
+                } else {
+                    viewModel.confirmTempOrderAndCreate(selectedDestination ?: defaultDestination)
+                    sendToOtherLocation = false
+                    selectedDestination = null
+                    isLocationConfirmedByUser = false
+                    showSummaryDialog = false
+                }
+            },
             onDismiss = { showSummaryDialog = false }
         )
     }
@@ -1521,6 +1558,11 @@ fun RestaurantOrderDialog(
 @Composable
 fun OrderSummaryDialog(
     items: List<TempOrderItem>,
+    isDeliveryLocationConfirmed: Boolean,
+    isOtherLocation: Boolean,
+    deliveryLocationLabel: String,
+    onUseCurrentLocation: () -> Unit,
+    onUseOtherLocation: () -> Unit,
     onEditItem: (String) -> Unit,
     onRemoveItem: (String) -> Unit,
     onClearAll: () -> Unit,
@@ -1609,6 +1651,36 @@ fun OrderSummaryDialog(
                                         IconButton(onClick = { onRemoveItem(item.id) }, modifier = Modifier.size(30.dp)) {
                                             Icon(Icons.Default.Delete, null, tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF111111)),
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(1.dp, ApkBrandOrange.copy(alpha = 0.35f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("DESTINO DE ENTREGA", color = ApkBrandOrange, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                                Text(deliveryLocationLabel, color = ApkBrandYellow, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Button(
+                                        onClick = onUseCurrentLocation,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = if (isDeliveryLocationConfirmed && !isOtherLocation) ApkBrandOrange else Color(0xFF2A2A2A))
+                                    ) {
+                                        Text("MI UBICACION", fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = onUseOtherLocation,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = if (isOtherLocation) ApkBrandOrange else Color(0xFF2A2A2A))
+                                    ) {
+                                        Text("OTRA", fontWeight = FontWeight.Black, fontSize = 11.sp)
                                     }
                                 }
                             }
@@ -1951,21 +2023,28 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
     val context = LocalContext.current
     val order = viewModel.activeOrder ?: return
     val deliveryDestination = order.destinationLocation ?: order.clientLocation ?: MyLatLng()
+    val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
     // Si ya compró o está en camino, el flujo es más restringido
-    val isEnRoute = order.status == OrderStatus.PICKING_UP || order.status == OrderStatus.IN_DELIVERY || order.status == OrderStatus.DELIVERED_BY_REPARTIDOR
+    val isEnRoute = order.status == OrderStatus.IN_DELIVERY ||
+        order.status == OrderStatus.DELIVERED_BY_REPARTIDOR ||
+        (!isFoodOrder && order.status == OrderStatus.PICKING_UP)
     val deliveryNameDisplay = order.deliveryName?.ifBlank { "Repartidor" } ?: "Repartidor"
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Mapa ocupa todo el fondo con efecto 2.5D
-        MapLibreTrackingView(
-            userLocation = deliveryDestination, 
-            otherLocation = order.deliveryLocation, 
-            otherTitle = deliveryNameDisplay, 
-            showRoute = true,
-            centerOnOther = true,
-            deliveryPath = order.deliveryPath,
-            plannedRoute = viewModel.plannedRoute
-        )
+        if (isEnRoute) {
+            // Mapa ocupa todo el fondo con efecto 2.5D
+            MapLibreTrackingView(
+                userLocation = deliveryDestination, 
+                otherLocation = order.deliveryLocation, 
+                otherTitle = deliveryNameDisplay, 
+                showRoute = true,
+                centerOnOther = true,
+                deliveryPath = order.deliveryPath,
+                plannedRoute = viewModel.plannedRoute
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(ApkBrandBlack))
+        }
 
         // Panel de Control Inferior - Muy compacto si ya está en camino
         Card(
@@ -2139,6 +2218,7 @@ private fun parseQuoteRows(description: String?): List<QuoteRow> {
 fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String, onPChange: (String) -> Unit, onSChange: (String) -> Unit, onOpenChat: () -> Unit) {
     val order = viewModel.activeOrder ?: return
     val deliveryDestination = order.destinationLocation ?: order.clientLocation
+    val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
     
     val quoteRows = remember(order.id, order.description) { parseQuoteRows(order.description) }
     val unitPrices = remember(order.id) { mutableStateMapOf<Int, String>() }
@@ -2341,22 +2421,28 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                         ) { 
                             Icon(Icons.Default.ShoppingCart, null, tint = Color.White)
                             Spacer(Modifier.width(10.dp))
-                            Text("IR A COMPRAR", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White, maxLines = 1) 
+                            Text(if (isFoodOrder) "AVISAR AL RESTAURANTE" else "IR A COMPRAR", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White, maxLines = 1) 
                         }
                     }
                     OrderStatus.PICKING_UP -> {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(
-                                onClick = { viewModel.updateOrderStatus(OrderStatus.IN_DELIVERY) }, 
-                                modifier = Modifier.fillMaxWidth().height(62.dp), 
-                                colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
-                                shape = RoundedCornerShape(16.dp)
-                            ) { 
-                                Icon(Icons.Default.BikeScooter, null, tint = Color.White)
-                                Spacer(Modifier.width(10.dp))
-                                Text("COMPRADO, EN RUTA", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White, maxLines = 1) 
+                            if (isFoodOrder) {
+                                Surface(modifier = Modifier.fillMaxWidth(), color = ApkBrandPanelSoft, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, ApkBrandBorder)) {
+                                    Text("ESPERANDO DESPACHO DEL RESTAURANTE", color = ApkBrandYellow, modifier = Modifier.padding(16.dp), fontSize = 13.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+                                }
+                            } else {
+                                Button(
+                                    onClick = { viewModel.updateOrderStatus(OrderStatus.IN_DELIVERY) }, 
+                                    modifier = Modifier.fillMaxWidth().height(62.dp), 
+                                    colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) { 
+                                    Icon(Icons.Default.BikeScooter, null, tint = Color.White)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("COMPRADO, EN RUTA", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White, maxLines = 1) 
+                                }
+                                WazeButton(order, context, viewModel)
                             }
-                            WazeButton(order, context, viewModel)
                         }
                     }
                     OrderStatus.IN_DELIVERY -> {

@@ -519,9 +519,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           history.push(summary);
           localStorage.setItem('rapidEnvios_local_history', JSON.stringify(history));
           setPastOrders(history);
+          await SupabasePwaApi.updateOrder(updatedOrder, clientUser, deliveryUser);
+          setActiveOrder(null);
+          return;
         }
 
-        // 2. Borrar físicamente de Supabase
+        // En pruebas solo se borran cancelados; los completados quedan como COMPLETED.
         await SupabasePwaApi.request(`/rest/v1/orders?id=eq.${updatedOrder.id}`, { method: 'DELETE' });
         setActiveOrder(null);
       } else {

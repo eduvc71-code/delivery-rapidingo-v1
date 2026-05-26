@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 const RESTAURANT_PARTNERS = [
-  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '74721716' },
+  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '74721716' },
   { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/la_toscana2.jpg', phone: '69376937' },
   { id: 'la_toscana_1', name: 'La Toscana Centro', logoUrl: 'assets/restaurants/la_plazuela.jpg', phone: '73939626' },
   { id: 'la_toscana_2', name: 'La Toscana - Tablitas', logoUrl: 'assets/restaurants/la_coqueta.jpg', phone: '73939626' },
@@ -17,7 +17,7 @@ const RESTAURANT_PARTNERS = [
   { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/la_toscana1.jpg', phone: '77848655' },
   { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '72815881' },
   { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '67270686' },
-  { id: 'la_toscana_rapido', name: 'La Toscana - Rapido', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '73939626' }
+  { id: 'la_toscana_rapido', name: 'La Toscana - Rapido', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '73939626' }
 ];
 
 const parseRestaurantItems = (description: string, restaurantName: string): string[] => {
@@ -125,7 +125,7 @@ const getPasswordProgress = (typed: string, correct: string): number => {
 
 export const RestaurantModule: React.FC = () => {
   const { allOrders, restaurantUser, registerUser, logout, updateOrder, playNotificationSound } = useApp();
-  const [activeTab, setActiveTab] = useState<'INCOMING' | 'KITCHEN' | 'DISPATCH' | 'HISTORY'>('INCOMING');
+  const [activeTab, setActiveTab] = useState<'INCOMING' | 'PROCESS' | 'DISPATCH' | 'HISTORY'>('INCOMING');
   const [localHistory, setLocalHistory] = useState<any[]>([]);
 
   // Prep Time selector per orderId state
@@ -173,7 +173,7 @@ export const RestaurantModule: React.FC = () => {
     });
   }, [restaurantOrders]);
 
-  const kitchenOrders = useMemo(() => {
+  const processOrders = useMemo(() => {
     return restaurantOrders.filter(order => {
       const { status } = getRestaurantStatus(order);
       return order.status === OrderStatus.PICKING_UP && status === 'ACCEPTED';
@@ -245,7 +245,7 @@ export const RestaurantModule: React.FC = () => {
     const notificationMsg: ChatMessage = {
       id: `sys-notif-${Date.now()}`,
       senderId: 'system',
-      text: `El restaurante ${restaurantUser?.name} aceptó el pedido. Listo en ${prepMinutes} minutos.`,
+      text: `El restaurante ${restaurantUser?.name} aceptó el pedido. Estará listo en ${prepMinutes} minutos.`,
       timestamp: Date.now(),
       isSystem: true
     };
@@ -467,13 +467,13 @@ export const RestaurantModule: React.FC = () => {
             )}
           </button>
           <button 
-            onClick={() => setActiveTab('KITCHEN')} 
-            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'KITCHEN' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('PROCESS')} 
+            className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'PROCESS' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
-            EN COCINA
-            {kitchenOrders.length > 0 && (
+            EN PROCESO
+            {processOrders.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-yellow text-brand-black rounded-full flex items-center justify-center text-[8px] font-black">
-                {kitchenOrders.length}
+                {processOrders.length}
               </span>
             )}
           </button>
@@ -557,7 +557,7 @@ export const RestaurantModule: React.FC = () => {
                     onClick={() => handleAcceptOrder(order)}
                     className="w-full bg-brand-orange hover:bg-brand-orange/90 active:scale-[0.98] text-white py-4 rounded-2xl font-black transition-all shadow-[0_8px_20px_rgba(255,106,0,0.2)] text-sm tracking-[3px] font-teko uppercase italic"
                   >
-                    ACEPTAR Y EMPEZAR COCINA
+                    ACEPTAR Y DAR TIEMPO
                   </button>
                 </div>
               );
@@ -573,9 +573,9 @@ export const RestaurantModule: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'KITCHEN' && (
+        {activeTab === 'PROCESS' && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            {kitchenOrders.map(order => {
+            {processOrders.map(order => {
               const items = parseRestaurantItems(order.description, restaurantUser.name);
               const { prepTime, timestamp } = getRestaurantStatus(order);
 
@@ -585,7 +585,7 @@ export const RestaurantModule: React.FC = () => {
 
                   <div className="flex justify-between items-start pl-2">
                     <div>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[2px] font-teko italic">EN PREPARACIÓN</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[2px] font-teko italic">PEDIDO ACEPTADO</p>
                       <h4 className="text-xs font-black text-white font-montserrat uppercase tracking-tight mt-1">Repartidor: {order.deliveryName || 'Trinidad Repartidor'}</h4>
                     </div>
                     <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-1.5 rounded-xl">
@@ -596,7 +596,7 @@ export const RestaurantModule: React.FC = () => {
 
                   {/* Items list */}
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/5 space-y-2 ml-2">
-                    <p className="text-[9px] text-brand-yellow font-black uppercase tracking-widest font-teko italic">Platos en cocina:</p>
+                    <p className="text-[9px] text-brand-yellow font-black uppercase tracking-widest font-teko italic">Detalle del pedido:</p>
                     <ul className="divide-y divide-white/5 text-sm font-bold text-gray-200 font-montserrat">
                       {items.map((item, idx) => (
                         <li key={idx} className="py-1.5 first:pt-0 last:pb-0 uppercase">
@@ -616,10 +616,10 @@ export const RestaurantModule: React.FC = () => {
               );
             })}
 
-            {kitchenOrders.length === 0 && (
+            {processOrders.length === 0 && (
               <div className="text-center py-20 text-gray-600">
                 <ChefHat size={48} className="mx-auto text-gray-700 mb-3" />
-                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay platos en cocina</p>
+                <p className="font-black font-teko uppercase tracking-widest text-sm">No hay pedidos en proceso</p>
               </div>
             )}
           </div>

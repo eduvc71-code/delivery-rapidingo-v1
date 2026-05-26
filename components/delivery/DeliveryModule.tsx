@@ -170,6 +170,7 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
     if (!isRestaurant) return null;
     return getRestaurantStatus(activeOrder);
   }, [activeOrder]);
+  const activeOrderIsRestaurant = Boolean(restStatus);
 
   useEffect(() => {
     if (!activeOrder) {
@@ -186,7 +187,10 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
 
   useEffect(() => {
     if (!activeOrder || !deliveryUser || !('geolocation' in navigator)) return;
-    if (![OrderStatus.BIDDING, OrderStatus.CONFIRMED_BY_CLIENT, OrderStatus.PICKING_UP, OrderStatus.IN_DELIVERY].includes(activeOrder.status)) return;
+    const shouldTrack = activeOrder.description.toUpperCase().includes('RESTAURANTE:')
+      ? activeOrder.status === OrderStatus.IN_DELIVERY
+      : [OrderStatus.BIDDING, OrderStatus.CONFIRMED_BY_CLIENT, OrderStatus.PICKING_UP, OrderStatus.IN_DELIVERY].includes(activeOrder.status);
+    if (!shouldTrack) return;
 
     watchId.current = navigator.geolocation.watchPosition(
       (position) => {
@@ -424,7 +428,7 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
 
                 {activeOrder.status === OrderStatus.CONFIRMED_BY_CLIENT && (
                    <button onClick={() => updateOrder({...activeOrder, status: OrderStatus.PICKING_UP})} className="w-full bg-brand-orange text-white py-5 rounded-[22px] font-black font-teko italic text-xl uppercase tracking-[4px] shadow-[0_0_20px_rgba(255,106,0,0.4)] flex items-center justify-center gap-3 animate-pulse">
-                     <CheckCircle size={24} /> IR A COMPRAR
+                     <CheckCircle size={24} /> {activeOrderIsRestaurant ? 'AVISAR AL RESTAURANTE' : 'IR A COMPRAR'}
                    </button>
                 )}
 
@@ -463,9 +467,11 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
                        </>
                      )}
 
-                     <button onClick={() => updateOrder({...activeOrder, status: OrderStatus.IN_DELIVERY})} className="w-full bg-brand-orange text-white py-5 rounded-[22px] font-black font-teko italic text-xl uppercase tracking-[4px] shadow-[0_0_20px_rgba(255,106,0,0.4)] flex items-center justify-center gap-3">
-                       <Truck size={24} /> COMPRADO, EN RUTA
-                     </button>
+                     {!activeOrderIsRestaurant && (
+                       <button onClick={() => updateOrder({...activeOrder, status: OrderStatus.IN_DELIVERY})} className="w-full bg-brand-orange text-white py-5 rounded-[22px] font-black font-teko italic text-xl uppercase tracking-[4px] shadow-[0_0_20px_rgba(255,106,0,0.4)] flex items-center justify-center gap-3">
+                         <Truck size={24} /> COMPRADO, EN RUTA
+                       </button>
+                     )}
                    </div>
                 )}
 
@@ -568,7 +574,10 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
       </div>
 
       {/* Botón Flotante de WAZE */}
-      {activeOrder && (activeOrder.status === OrderStatus.PICKING_UP || activeOrder.status === OrderStatus.IN_DELIVERY || activeOrder.status === OrderStatus.CONFIRMED_BY_CLIENT) && (
+      {activeOrder && (
+        activeOrder.status === OrderStatus.IN_DELIVERY ||
+        (!activeOrderIsRestaurant && (activeOrder.status === OrderStatus.PICKING_UP || activeOrder.status === OrderStatus.CONFIRMED_BY_CLIENT))
+      ) && (
         <button
           onClick={openNavigationToClient}
           className="absolute bottom-10 right-6 bg-brand-orange text-white px-7 py-4 rounded-full shadow-[0_10px_30px_rgba(255,106,0,0.5)] z-30 flex items-center gap-3 active:scale-95 transition-all border-2 border-white/20 animate-bounce group"

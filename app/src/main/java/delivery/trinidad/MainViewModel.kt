@@ -83,8 +83,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "74721716",
             address = "Trinidad Centro",
             schedule = "Lun-Dom: 12:00 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/wings_drinks.jpg",
-            menuUrl = "file:///android_asset/restaurants/wings_drinks.jpg",
+            logoUrl = "file:///android_asset/restaurants/el_benianito.jpg",
+            menuUrl = "file:///android_asset/restaurants/el_benianito.jpg",
             logoColor = 0xFFFF5722L
         ),
         Restaurant(
@@ -98,8 +98,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "69376937",
             address = "C/ Macheteros #284",
             schedule = "Lun-Dom: 12:00 - 23:00",
-            logoUrl = "file:///android_asset/restaurants/el_brete.jpg",
-            menuUrl = "file:///android_asset/restaurants/el_brete.jpg",
+            logoUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
             logoColor = 0xFFE91E63L
         ),
         Restaurant(
@@ -113,8 +113,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "73939626",
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/la_toscana.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_toscana.jpg",
+            logoUrl = "file:///android_asset/restaurants/la_plazuela.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_plazuela.jpg",
             logoColor = 0xFF9C27B0L
         ),
         Restaurant(
@@ -128,8 +128,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "73939626",
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/la_toscana1.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_toscana1.jpg",
+            logoUrl = "file:///android_asset/restaurants/la_coqueta.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_coqueta.jpg",
             logoColor = 0xFF673AB7L
         ),
         Restaurant(
@@ -143,8 +143,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "73900041",
             address = "Calle 9 de Abril, diagonal parroquia Fatima",
             schedule = "Lun-Dom: 12:00 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/la_plazuela.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_plazuela.jpg",
+            logoUrl = "file:///android_asset/restaurants/toby.jpg",
+            menuUrl = "file:///android_asset/restaurants/toby.jpg",
             logoColor = 0xFF795548L
         ),
         Restaurant(
@@ -158,8 +158,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "72845195",
             address = "Calle Sucre esquina 9 de Abril",
             schedule = "Mar-Dom: 19:00 - 23:00",
-            logoUrl = "file:///android_asset/restaurants/la_coqueta.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_coqueta.jpg",
+            logoUrl = "file:///android_asset/restaurants/el_brete.jpg",
+            menuUrl = "file:///android_asset/restaurants/el_brete.jpg",
             logoColor = 0xFFE91E63L
         ),
         Restaurant(
@@ -173,8 +173,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "77848655",
             address = "Calle Santa Cruz esq. Av. del Mar",
             schedule = "Lun-Dom: 12:00 - 23:00",
-            logoUrl = "file:///android_asset/restaurants/mr_grill.jpg",
-            menuUrl = "file:///android_asset/restaurants/mr_grill.jpg",
+            logoUrl = "file:///android_asset/restaurants/la_toscana1.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_toscana1.jpg",
             logoColor = 0xFFFF5722L
         ),
         Restaurant(
@@ -188,8 +188,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "72815881",
             address = "Av. del Mar frente a la Plaza Ganadera",
             schedule = "19:00 - 12:30",
-            logoUrl = "file:///android_asset/restaurants/el_benianito.jpg",
-            menuUrl = "file:///android_asset/restaurants/el_benianito.jpg",
+            logoUrl = "file:///android_asset/restaurants/wings_drinks.jpg",
+            menuUrl = "file:///android_asset/restaurants/wings_drinks.jpg",
             logoColor = 0xFF3F51B5L
         ),
         Restaurant(
@@ -203,8 +203,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "67270686",
             address = "Trinidad Centro",
             schedule = "Lun-Dom: 12:00 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/toby.jpg",
-            menuUrl = "file:///android_asset/restaurants/toby.jpg",
+            logoUrl = "file:///android_asset/restaurants/la_toscana.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_toscana.jpg",
             logoColor = 0xFFD32F2FL
         ),
         Restaurant(
@@ -218,8 +218,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             phone = "73939626",
             address = "Calle La Paz esq. 18 de Noviembre",
             schedule = "Lun-Dom: 11:30 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
+            logoUrl = "file:///android_asset/restaurants/mr_grill.jpg",
+            menuUrl = "file:///android_asset/restaurants/mr_grill.jpg",
             logoColor = 0xFFBA68C8L
         )
     )
@@ -253,7 +253,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tempOrderItems = emptyList()
     }
 
-    fun confirmTempOrderAndCreate() {
+    fun confirmTempOrderAndCreate(destinationLocation: MyLatLng) {
         if (tempOrderItems.isEmpty()) return
 
         val grouped = tempOrderItems.groupBy { it.restaurantName }
@@ -270,7 +270,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         createOrder(
             category = "COMIDA",
             description = description.trim(),
-            destinationLocation = currentUserLocation ?: clientUser?.location ?: MyLatLng(-14.8336, -64.9000)
+            destinationLocation = destinationLocation
         )
 
         clearTempOrder()
@@ -739,6 +739,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (currentMode == UserRole.CLIENT && order.clientId == userId) {
                         SupabaseApi.updateOrder(order.id, JSONObject().put("client_location", newLoc.toJson()))
                     } else if (currentMode == UserRole.DELIVERY && order.deliveryId == userId) {
+                        val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
+                        if (isFoodOrder && order.status != OrderStatus.IN_DELIVERY && order.status != OrderStatus.DELIVERED_BY_REPARTIDOR) {
+                            return@let
+                        }
                         val updates = JSONObject().put("delivery_location", newLoc.toJson())
                         val lastLoc = order.deliveryPath.lastOrNull()
                         if (lastLoc == null ||
@@ -853,8 +857,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val orderToSave = activeOrder
                     if (orderToSave != null) {
                         saveOrderLocally(orderToSave.copy(status = OrderStatus.COMPLETED))
-                        deleteOrderMedia(orderToSave)
-                        SupabaseApi.deleteOrder(orderId)
+                        SupabaseApi.updateOrder(orderId, JSONObject().put("status", OrderStatus.COMPLETED.name))
                         
                         // Mostrar mensaje de gracias al usuario que finaliza
                         thankYouDialogMessage = if (currentMode == UserRole.CLIENT) {

@@ -70,7 +70,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '74721716',
     address: 'Trinidad Centro',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'assets/restaurants/wings_drinks.jpg',
+    logoUrl: 'assets/restaurants/el_benianito.jpg',
     color: '#FF6A00'
   },
   {
@@ -84,7 +84,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '69376937',
     address: 'C/ Macheteros #284',
     schedule: 'Lun-Dom: 12:00 - 23:00',
-    logoUrl: 'assets/restaurants/el_brete.jpg',
+    logoUrl: 'assets/restaurants/la_toscana2.jpg',
     color: '#FFC107'
   },
   {
@@ -98,7 +98,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'assets/restaurants/la_toscana.jpg',
+    logoUrl: 'assets/restaurants/la_plazuela.jpg',
     color: '#FF6A00'
   },
   {
@@ -112,7 +112,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'assets/restaurants/la_toscana1.jpg',
+    logoUrl: 'assets/restaurants/la_coqueta.jpg',
     color: '#FFC107'
   },
   {
@@ -126,7 +126,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73900041',
     address: 'Calle 9 de Abril, diagonal parroquia Fatima',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'assets/restaurants/la_plazuela.jpg',
+    logoUrl: 'assets/restaurants/toby.jpg',
     color: '#FF6A00'
   },
   {
@@ -140,7 +140,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '72845195',
     address: 'Calle Sucre esquina 9 de Abril',
     schedule: 'Mar-Dom: 19:00 - 23:00',
-    logoUrl: 'assets/restaurants/la_coqueta.jpg',
+    logoUrl: 'assets/restaurants/el_brete.jpg',
     color: '#FF6A00'
   },
   {
@@ -154,7 +154,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '77848655',
     address: 'Calle Santa Cruz esq. Av. del Mar',
     schedule: 'Lun-Dom: 12:00 - 23:00',
-    logoUrl: 'assets/restaurants/mr_grill.jpg',
+    logoUrl: 'assets/restaurants/la_toscana1.jpg',
     color: '#FFC107'
   },
   {
@@ -168,7 +168,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '72815881',
     address: 'Av. del Mar frente a la Plaza Ganadera',
     schedule: '19:00 - 12:30',
-    logoUrl: 'assets/restaurants/el_benianito.jpg',
+    logoUrl: 'assets/restaurants/wings_drinks.jpg',
     color: '#FF6A00'
   },
   {
@@ -182,7 +182,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '67270686',
     address: 'Trinidad Centro',
     schedule: 'Lun-Dom: 12:00 - 22:00',
-    logoUrl: 'assets/restaurants/toby.jpg',
+    logoUrl: 'assets/restaurants/la_toscana.jpg',
     color: '#FF6A00'
   },
   {
@@ -196,7 +196,7 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     phone: '73939626',
     address: 'Calle La Paz esq. 18 de Noviembre',
     schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'assets/restaurants/la_toscana2.jpg',
+    logoUrl: 'assets/restaurants/mr_grill.jpg',
     color: '#FFC107'
   }
 ];
@@ -751,21 +751,6 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
     setShowDestinationPicker(true);
   };
 
-  const handleOtherLocationToggle = (checked: boolean) => {
-    setSendToOtherLocation(checked);
-    setIsDestinationConfirmed(false);
-    setDestinationPoint(null);
-    if (checked) openDestinationPicker(true);
-  };
-
-  const handleDestinationConfirmationToggle = (checked: boolean) => {
-    if (!checked) {
-      setIsDestinationConfirmed(false);
-      return;
-    }
-    openDestinationPicker(sendToOtherLocation);
-  };
-
   useEffect(() => {
     if (activeOrder) setView('TRACKING');
     else {
@@ -912,60 +897,25 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
     lastMenuPinchDistanceRef.current = null;
   };
 
-  const submitOrderWithLocation = async (clientLocation: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
-    if (!clientUser || !selectedType) return;
-    const normalizedOrderText = selectedType === OrderType.RESTAURANT
-      ? buildRestaurantOrderDescription(restaurantItems)
-      : orderText.trim().toUpperCase();
-    await createOrder({
-      id: Date.now().toString(),
-      clientId: clientUser.id,
-      type: selectedType,
-      description: normalizedOrderText,
-      location: {
-        lat: destination.lat,
-        lng: destination.lng,
-        address: 'Destino de entrega'
-      },
-      clientLocation,
-      destinationLocation: {
-        lat: destination.lat,
-        lng: destination.lng,
-        address: 'Destino de entrega'
-      },
-      status: OrderStatus.PENDING_PRICE,
-      createdAt: Date.now(),
-      chatHistory: [],
-      photos: []
-    });
-    setRestaurantItems([]);
-    setOrderText('');
-    setSelectedType(null);
-    setIsLocationConfirmedByUser(false);
-    setSendToOtherLocation(false);
-  };
-
   const confirmLocationAsCurrent = () => {
     setShowLocationConfirmModal(false);
     setIsLocationConfirmedByUser(true);
+    setSendToOtherLocation(false);
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition((position) => {
         const currentLoc = { lat: position.coords.latitude, lng: position.coords.longitude };
         setDestinationPoint({ ...currentLoc, address: 'Mi ubicacion actual' });
         setIsDestinationConfirmed(true);
-        void submitOrderWithLocation(currentLoc, currentLoc);
       }, (error) => {
         console.warn("GPS error, using mock:", error);
         const mockLoc = { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng };
         setDestinationPoint({ ...mockLoc, address: 'Mi ubicacion actual' });
         setIsDestinationConfirmed(true);
-        void submitOrderWithLocation(mockLoc, mockLoc);
       });
     } else {
       const mockLoc = { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng };
       setDestinationPoint({ ...mockLoc, address: 'Mi ubicacion actual' });
       setIsDestinationConfirmed(true);
-      void submitOrderWithLocation(mockLoc, mockLoc);
     }
   };
 
@@ -1059,7 +1009,15 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
     ? restaurantItems.length > 0
     : !!selectedType && orderText.trim().length >= 3;
   const deliveryDisplayName = activeOrder?.deliveryName || assignedDelivery?.name;
-  const isEnRoute = activeOrder?.status === OrderStatus.PICKING_UP || activeOrder?.status === OrderStatus.IN_DELIVERY || activeOrder?.status === OrderStatus.DELIVERED_BY_REPARTIDOR;
+  const activeOrderIsRestaurant = activeOrder?.type === OrderType.RESTAURANT ||
+    activeOrder?.category === 'COMIDA' ||
+    activeOrder?.description.toUpperCase().includes('RESTAURANTE:');
+  const canShowLiveTracking = !!activeOrder && (
+    activeOrder.status === OrderStatus.IN_DELIVERY ||
+    activeOrder.status === OrderStatus.DELIVERED_BY_REPARTIDOR ||
+    (!activeOrderIsRestaurant && activeOrder.status === OrderStatus.PICKING_UP)
+  );
+  const isEnRoute = canShowLiveTracking;
   const deliveryStatusLabel = deliveryDisplayName
     ? deliveryDisplayName
     : availableDeliveries.length > 0
@@ -1463,29 +1421,37 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
 
                 <div className="bg-brand-black/80 rounded-[22px] border border-brand-orange/20 shadow-2xl p-5 space-y-4 relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-1 h-full bg-brand-orange group-active:w-2 transition-all"></div>
-                  <label className={`flex items-start gap-3 ${!isLocationConfirmedByUser ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <input
-                      type="checkbox"
-                      checked={sendToOtherLocation}
-                      disabled={!isLocationConfirmedByUser}
-                      onChange={(e) => handleOtherLocationToggle(e.target.checked)}
-                      className="mt-1 h-6 w-6 rounded-lg accent-brand-orange transition-transform active:scale-90 ring-2 ring-white/10"
-                    />
-                    <span>
-                      <span className="block text-base font-black text-brand-orange font-montserrat uppercase tracking-tight">Enviar a otra ubicación</span>
-                      <span className="block text-[10px] text-brand-yellow font-bold uppercase tracking-widest font-teko italic leading-tight mt-1">
-                        {!isLocationConfirmedByUser
-                          ? "Confirma tu ubicación al pedir"
-                          : destinationPoint
-                            ? "Punto marcado en el mapa"
-                            : "Se enviará a tu posición actual"}
-                      </span>
-                    </span>
-                  </label>
+                  <div>
+                    <p className="text-base font-black text-brand-orange font-montserrat uppercase tracking-tight">Destino de entrega</p>
+                    <p className="text-[10px] text-brand-yellow font-bold uppercase tracking-widest font-teko italic leading-tight mt-1">
+                      {!isLocationConfirmedByUser
+                        ? "Elige antes de confirmar el pedido"
+                        : sendToOtherLocation
+                          ? "Enviar a otra ubicacion"
+                          : "Enviar a mi ubicacion actual"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={confirmLocationAsCurrent}
+                      className={`py-3 rounded-xl font-black text-[10px] uppercase tracking-[2px] font-teko italic border active:scale-95 transition-all ${isLocationConfirmedByUser && !sendToOtherLocation ? 'bg-brand-orange text-white border-brand-orange' : 'bg-white/5 text-white border-white/10'}`}
+                    >
+                      Mi ubicacion
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmLocationAsAlternative}
+                      className={`py-3 rounded-xl font-black text-[10px] uppercase tracking-[2px] font-teko italic border active:scale-95 transition-all ${sendToOtherLocation ? 'bg-brand-orange text-white border-brand-orange' : 'bg-white/5 text-white border-white/10'}`}
+                    >
+                      Otra ubicacion
+                    </button>
+                  </div>
 
                   {destinationPoint && (
                     <button
-                      onClick={() => openDestinationPicker(true)}
+                      onClick={() => openDestinationPicker(sendToOtherLocation)}
                       className="w-full bg-white/5 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[2px] font-teko italic flex items-center justify-center gap-2 border border-white/10 active:bg-white/10 transition-colors shadow-lg"
                     >
                       <MapPin size={14} className="text-brand-orange" /> Cambiar ubicacion
@@ -1513,13 +1479,21 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                   </div>
                 </div>
                 
-                <div className="rounded-[28px] overflow-hidden border-2 border-white/5 shadow-2xl relative">
-                  <MapPlaceholder order={activeOrder} />
-                  <div className="absolute top-4 left-4 bg-brand-black/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2">
-                     <Bike size={16} className="text-brand-yellow" />
-                     <span className="text-[10px] font-black text-white font-teko uppercase tracking-widest italic">{deliveryDisplayName?.toUpperCase() || 'BUSCANDO REPARTIDOR...'}</span>
+                {canShowLiveTracking ? (
+                  <div className="rounded-[28px] overflow-hidden border-2 border-white/5 shadow-2xl relative">
+                    <MapPlaceholder order={activeOrder} />
+                    <div className="absolute top-4 left-4 bg-brand-black/70 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2">
+                       <Bike size={16} className="text-brand-yellow" />
+                       <span className="text-[10px] font-black text-white font-teko uppercase tracking-widest italic">{deliveryDisplayName?.toUpperCase() || 'BUSCANDO REPARTIDOR...'}</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-brand-black/90 p-5 rounded-[28px] shadow-2xl border border-white/5 text-center space-y-2">
+                    <Clock size={34} className="mx-auto text-brand-yellow" />
+                    <p className="text-[10px] font-black text-brand-yellow uppercase tracking-[4px] font-teko italic">Pedido en coordinacion</p>
+                    <p className="text-sm font-bold text-white font-montserrat leading-snug">El seguimiento se activara cuando el pedido salga con el delivery.</p>
+                  </div>
+                )}
 
                 <div className="bg-brand-black/90 p-5 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-white/5 space-y-5 relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-2 h-full bg-brand-orange shadow-[0_0_15px_#FF6A00]"></div>
