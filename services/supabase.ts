@@ -202,7 +202,7 @@ function userToRow(user: User): SupabaseUserRow {
     name: user.name,
     phone: user.phone || '',
     email: user.email || '',
-    role: user.role,
+    role: user.role === UserRole.RESTAURANT ? (UserRole.CLIENT as any) : user.role,
     location: toSupabaseLocation(user.location),
     online: user.role === UserRole.DELIVERY ? user.isOnline !== false : false,
     device_id: user.id,
@@ -210,12 +210,16 @@ function userToRow(user: User): SupabaseUserRow {
 }
 
 function rowToUser(row: SupabaseUserRow): User {
+  let role = row.role;
+  if (role === UserRole.CLIENT && row.email && row.email.endsWith('@rapidingo.com')) {
+    role = UserRole.RESTAURANT;
+  }
   return {
     id: row.id,
     name: row.name,
     phone: row.phone || '',
     email: row.email || '',
-    role: row.role,
+    role: role,
     location: fromSupabaseLocation(row.location),
     isOnline: Boolean(row.online),
     isVerified: true,

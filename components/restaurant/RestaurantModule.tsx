@@ -8,16 +8,16 @@ import {
 } from 'lucide-react';
 
 const RESTAURANT_PARTNERS = [
-  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '74721716' },
-  { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/el_brete.jpg', phone: '69376937' },
-  { id: 'la_toscana_1', name: 'La Toscana Centro', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '73939626' },
-  { id: 'la_toscana_2', name: 'La Toscana - Tablitas', logoUrl: 'assets/restaurants/la_toscana1.jpg', phone: '73939626' },
-  { id: 'la_plazuela', name: 'La Plazuela J&C', logoUrl: 'assets/restaurants/la_plazuela.jpg', phone: '73900041' },
-  { id: 'la_coqueta', name: 'La Coqueta', logoUrl: 'assets/restaurants/la_coqueta.jpg', phone: '72845195' },
-  { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '77848655' },
-  { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '72815881' },
-  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/toby.jpg', phone: '67270686' },
-  { id: 'la_toscana_rapido', name: 'La Toscana - Rapido', logoUrl: 'assets/restaurants/la_toscana2.jpg', phone: '73939626' }
+  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '74721716' },
+  { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/la_toscana2.jpg', phone: '69376937' },
+  { id: 'la_toscana_1', name: 'La Toscana Centro', logoUrl: 'assets/restaurants/la_plazuela.jpg', phone: '73939626' },
+  { id: 'la_toscana_2', name: 'La Toscana - Tablitas', logoUrl: 'assets/restaurants/la_coqueta.jpg', phone: '73939626' },
+  { id: 'la_plazuela', name: 'La Plazuela J&C', logoUrl: 'assets/restaurants/toby.jpg', phone: '73900041' },
+  { id: 'la_coqueta', name: 'La Coqueta', logoUrl: 'assets/restaurants/el_brete.jpg', phone: '72845195' },
+  { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/la_toscana1.jpg', phone: '77848655' },
+  { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '72815881' },
+  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '67270686' },
+  { id: 'la_toscana_rapido', name: 'La Toscana - Rapido', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '73939626' }
 ];
 
 const parseRestaurantItems = (description: string, restaurantName: string): string[] => {
@@ -358,16 +358,24 @@ export const RestaurantModule: React.FC = () => {
                     <p className="text-[10px] text-brand-yellow font-black uppercase tracking-[3px] font-teko italic mt-1">INGRESE CONTRASEÑA DE SEGURIDAD</p>
                   </div>
 
-                  <div className="w-44 h-44 flex items-center justify-center relative my-4">
+                  <div className="w-64 h-80 flex items-center justify-center relative my-4">
                     {bestMatchPartner && (
-                      <div 
-                        className="w-44 h-44 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
-                        style={{
-                          transform: `scale(${0.5 + bestMatchProgress * 0.5})`,
-                          opacity: bestMatchProgress,
-                        }}
-                      >
-                        <img src={bestMatchPartner.logoUrl} alt={bestMatchPartner.name} className="w-full h-full object-cover" />
+                      <div className="relative w-64 h-80 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300">
+                        {/* Background placeholder card to show a subtle target */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-brand-black/40 text-white/5 border-2 border-dashed border-white/10 rounded-3xl">
+                          <Utensils size={40} className="animate-pulse" />
+                        </div>
+                        {/* Filled/Clipped Image */}
+                        <img 
+                          src={bestMatchPartner.logoUrl} 
+                          alt={bestMatchPartner.name} 
+                          className="absolute inset-0 w-full h-full object-cover transition-all duration-300"
+                          style={{
+                            clipPath: `inset(${100 - bestMatchProgress * 100}% 0% 0% 0%)`,
+                            transform: `scale(${0.9 + bestMatchProgress * 0.1})`,
+                            opacity: bestMatchProgress,
+                          }}
+                        />
                       </div>
                     )}
                   </div>
@@ -392,7 +400,7 @@ export const RestaurantModule: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-orange active:scale-95 transition-all p-1"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
