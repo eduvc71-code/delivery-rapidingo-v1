@@ -1291,7 +1291,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
               <div className="space-y-6">
                 <header className="flex items-center justify-between">
                   <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${availableDeliveries.length > 0 ? 'bg-green-500/10 border-green-500 text-green-400' : 'bg-brand-orange/10 border-brand-orange text-brand-orange shadow-[0_0_10px_rgba(255,106,0,0.2)]'}`}>
-                    <Bike size={14} className="animate-bounce-subtle" />
+                    <img src="assets/client/scooter.png" alt="" className="w-5 h-5 object-contain" />
                     <span className="text-[10px] font-black uppercase tracking-widest font-teko italic">{deliveryStatusLabel.toUpperCase()}</span>
                   </div>
 

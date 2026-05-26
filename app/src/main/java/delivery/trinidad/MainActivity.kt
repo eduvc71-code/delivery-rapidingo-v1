@@ -830,6 +830,32 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                                 maxLines = 1
                             )
                         }
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            color = if (availableDeliveries > 0) Color(0xFF2E7D32).copy(alpha = 0.15f) else ApkBrandOrange.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, if (availableDeliveries > 0) Color(0xFF4CAF50) else ApkBrandOrange),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_scooter),
+                                    contentDescription = "Deliveries",
+                                    modifier = Modifier.size(18.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = if (availableDeliveries > 0) "$availableDeliveries" else "0",
+                                    color = if (availableDeliveries > 0) Color(0xFF81C784) else ApkBrandOrange,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
                     }
                 },
                 actions = { 
