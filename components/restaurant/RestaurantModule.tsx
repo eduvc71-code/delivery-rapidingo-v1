@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { UserRole, Order, OrderStatus, ChatMessage } from '../../types';
 import { 
   Clock, CheckCircle, CookingPot, Utensils, LogOut, PhoneCall, 
-  History, ChefHat, AlertCircle, ShoppingBag, ShieldAlert
+  History, ChefHat, AlertCircle, ShoppingBag, ShieldAlert,
+  Eye, EyeOff
 } from 'lucide-react';
 
 const RESTAURANT_PARTNERS = [
@@ -114,17 +115,12 @@ const CountdownTimer: React.FC<{ acceptedAt: number; prepDurationMinutes: number
 };
 
 const getPasswordProgress = (typed: string, correct: string): number => {
-  if (!correct) return 0;
-  let matchCount = 0;
-  const minLen = Math.min(typed.length, correct.length);
-  for (let i = 0; i < minLen; i++) {
-    if (typed[i] === correct[i]) {
-      matchCount++;
-    } else {
-      break;
-    }
+  if (!correct || !typed) return 0;
+  if (typed.length > correct.length) return 0;
+  if (correct.startsWith(typed)) {
+    return typed.length / correct.length;
   }
-  return matchCount / correct.length;
+  return 0;
 };
 
 export const RestaurantModule: React.FC = () => {
@@ -138,6 +134,7 @@ export const RestaurantModule: React.FC = () => {
   // Auth states
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem(`rapidEnvios_restHistory_${restaurantUser?.id || ''}`);
@@ -229,6 +226,7 @@ export const RestaurantModule: React.FC = () => {
       });
       setAuthPassword('');
       setAuthError('');
+      setShowPassword(false);
     } else {
       setAuthError('Contraseña incorrecta. Intente de nuevo.');
     }
@@ -360,10 +358,10 @@ export const RestaurantModule: React.FC = () => {
                     <p className="text-[10px] text-brand-yellow font-black uppercase tracking-[3px] font-teko italic mt-1">INGRESE CONTRASEÑA DE SEGURIDAD</p>
                   </div>
 
-                  <div className="w-24 h-24 flex items-center justify-center relative my-2">
+                  <div className="w-44 h-44 flex items-center justify-center relative my-4">
                     {bestMatchPartner && (
                       <div 
-                        className="w-24 h-24 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
+                        className="w-44 h-44 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
                         style={{
                           transform: `scale(${0.5 + bestMatchProgress * 0.5})`,
                           opacity: bestMatchProgress,
@@ -376,20 +374,29 @@ export const RestaurantModule: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <input
-                    type="password"
-                    value={authPassword}
-                    onChange={(e) => {
-                      setAuthPassword(e.target.value);
-                      setAuthError('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleConfirmAuth();
-                    }}
-                    placeholder="••••••••"
-                    className="w-full text-center px-4 py-4 bg-brand-black/80 border-2 border-white/5 focus:border-brand-orange rounded-2xl font-bold text-lg text-white outline-none transition-all font-montserrat tracking-[0.2em] placeholder:tracking-normal placeholder:text-gray-800 shadow-inner"
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={authPassword}
+                      onChange={(e) => {
+                        setAuthPassword(e.target.value);
+                        setAuthError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleConfirmAuth();
+                      }}
+                      placeholder="••••••••"
+                      className="w-full text-center pl-12 pr-12 py-4 bg-brand-black/80 border-2 border-white/5 focus:border-brand-orange rounded-2xl font-bold text-lg text-white outline-none transition-all font-montserrat tracking-[0.2em] placeholder:tracking-normal placeholder:text-gray-800 shadow-inner"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                   {authError && (
                     <p className="text-red-500 font-bold text-[10px] text-center uppercase tracking-widest font-teko italic animate-bounce">
                       {authError}
