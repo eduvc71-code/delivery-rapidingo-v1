@@ -2188,7 +2188,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(clientNameDisplay.uppercase(), fontWeight = FontWeight.Black, color = Color.White, fontSize = 16.sp)
-                        Text(order.description.uppercase(), fontWeight = FontWeight.Bold, color = ApkBrandMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(order.description.uppercase(), fontWeight = FontWeight.Bold, color = ApkBrandMuted, fontSize = 13.sp)
                     }
                 }
                 
