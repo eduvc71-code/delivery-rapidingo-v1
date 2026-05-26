@@ -35,6 +35,15 @@ const apps = [
     manifestSource: 'manifest-delivery.json',
     icon192: 'delivery-192.png',
     icon512: 'delivery-512.png'
+  },
+  {
+    folder: 'restaurante',
+    role: 'restaurant',
+    name: 'Rapidingo Restaurante',
+    theme: '#FFC107',
+    manifestSource: 'manifest-client.json',
+    icon192: 'client-192.png',
+    icon512: 'client-512.png'
   }
 ];
 const cacheSuffix = Date.now().toString(36);
