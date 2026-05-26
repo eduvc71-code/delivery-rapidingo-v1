@@ -136,7 +136,6 @@ export const RestaurantModule: React.FC = () => {
   const [selectedPrepTimes, setSelectedPrepTimes] = useState<Record<string, number>>({});
 
   // Auth states
-  const [selectedPartnerForAuth, setSelectedPartnerForAuth] = useState<typeof RESTAURANT_PARTNERS[number] | null>(null);
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -214,26 +213,22 @@ export const RestaurantModule: React.FC = () => {
     la_toscana_rapido: 'toscana739'
   };
 
-  const handleLogin = (partner: typeof RESTAURANT_PARTNERS[number]) => {
-    setSelectedPartnerForAuth(partner);
-    setAuthPassword('');
-    setAuthError('');
-  };
-
   const handleConfirmAuth = () => {
-    if (!selectedPartnerForAuth) return;
-    const correctPassword = RESTAURANT_PASSWORDS[selectedPartnerForAuth.id] || 'admin123';
+    const matchingPartner = RESTAURANT_PARTNERS.find(partner => {
+      const correctPassword = RESTAURANT_PASSWORDS[partner.id];
+      return correctPassword && authPassword.toLowerCase() === correctPassword.toLowerCase();
+    });
     
-    if (authPassword === correctPassword) {
+    if (matchingPartner) {
       registerUser({
-        id: selectedPartnerForAuth.id,
-        name: selectedPartnerForAuth.name,
-        phone: selectedPartnerForAuth.phone,
+        id: matchingPartner.id,
+        name: matchingPartner.name,
+        phone: matchingPartner.phone,
         role: UserRole.RESTAURANT,
-        email: `${selectedPartnerForAuth.id}@rapidingo.com`
+        email: `${matchingPartner.id}@rapidingo.com`
       });
-      setSelectedPartnerForAuth(null);
       setAuthPassword('');
+      setAuthError('');
     } else {
       setAuthError('Contraseña incorrecta. Intente de nuevo.');
     }
@@ -336,31 +331,47 @@ export const RestaurantModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-y-auto no-scrollbar space-y-6">
-          {selectedPartnerForAuth ? (() => {
-            const correctPassword = RESTAURANT_PASSWORDS[selectedPartnerForAuth.id] || 'admin123';
-            const passwordProgress = getPasswordProgress(authPassword, correctPassword);
+        <div className="flex-1 p-6 overflow-y-auto no-scrollbar flex items-center justify-center">
+          {(() => {
+            let bestMatchProgress = 0;
+            let bestMatchPartner: typeof RESTAURANT_PARTNERS[number] | null = null;
+
+            if (authPassword) {
+              for (const partner of RESTAURANT_PARTNERS) {
+                const correct = RESTAURANT_PASSWORDS[partner.id] || '';
+                const progress = getPasswordProgress(authPassword.toLowerCase(), correct.toLowerCase());
+                if (progress > bestMatchProgress) {
+                  bestMatchProgress = progress;
+                  bestMatchPartner = partner;
+                }
+              }
+            }
+
             return (
-              <div className="bg-brand-black/95 border border-brand-orange/30 p-6 rounded-[2rem] space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden animate-scale-up">
+              <div className="w-full max-w-sm bg-brand-black/95 border border-brand-orange/30 p-6 rounded-[2rem] space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden animate-scale-up">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-orange via-brand-yellow to-brand-orange"></div>
                 
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div>
                     <h2 className="text-2xl font-black text-brand-orange font-montserrat tracking-tight italic">¡BIENVENIDO!</h2>
-                    <h3 className="text-lg font-black uppercase text-white font-montserrat tracking-tight mt-1">{selectedPartnerForAuth.name}</h3>
+                    <h3 className="text-lg font-black uppercase text-white font-montserrat tracking-tight mt-1 h-7">
+                      {bestMatchPartner ? bestMatchPartner.name : 'PANEL OPERATIVO'}
+                    </h3>
                     <p className="text-[10px] text-brand-yellow font-black uppercase tracking-[3px] font-teko italic mt-1">INGRESE CONTRASEÑA DE SEGURIDAD</p>
                   </div>
 
                   <div className="w-24 h-24 flex items-center justify-center relative my-2">
-                    <div 
-                      className="w-24 h-24 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
-                      style={{
-                        transform: `scale(${0.5 + passwordProgress * 0.5})`,
-                        opacity: passwordProgress,
-                      }}
-                    >
-                      <img src={selectedPartnerForAuth.logoUrl} alt={selectedPartnerForAuth.name} className="w-full h-full object-cover" />
-                    </div>
+                    {bestMatchPartner && (
+                      <div 
+                        className="w-24 h-24 bg-white/5 rounded-3xl overflow-hidden border border-white/10 shadow-lg transition-all duration-300"
+                        style={{
+                          transform: `scale(${0.5 + bestMatchProgress * 0.5})`,
+                          opacity: bestMatchProgress,
+                        }}
+                      >
+                        <img src={bestMatchPartner.logoUrl} alt={bestMatchPartner.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -386,49 +397,16 @@ export const RestaurantModule: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2 font-teko italic uppercase tracking-[3px] text-sm font-black">
-                  <button
-                    onClick={() => setSelectedPartnerForAuth(null)}
-                    className="bg-white/5 text-gray-400 py-4 rounded-2xl border border-white/10 hover:bg-white/10 active:scale-95 transition-all"
-                  >
-                    VOLVER
-                  </button>
-                  <button
-                    onClick={handleConfirmAuth}
-                    disabled={!authPassword}
-                    className="bg-brand-orange text-white py-4 rounded-2xl shadow-[0_8px_20px_rgba(255,106,0,0.3)] hover:bg-brand-orange/90 active:scale-95 transition-all disabled:opacity-30"
-                  >
-                    INGRESAR
-                  </button>
-                </div>
+                <button
+                  onClick={handleConfirmAuth}
+                  disabled={!authPassword}
+                  className="w-full bg-brand-orange text-white py-4 rounded-2xl font-teko italic uppercase tracking-[3px] text-sm font-black shadow-[0_8px_20px_rgba(255,106,0,0.3)] hover:bg-brand-orange/90 active:scale-95 transition-all disabled:opacity-30"
+                >
+                  INGRESAR
+                </button>
               </div>
             );
-          })() : (
-            <>
-              <div className="border-l-4 border-brand-orange pl-3">
-                <h3 className="text-lg font-black text-white uppercase tracking-tight">Selecciona tu Restaurante</h3>
-                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest font-teko italic">Trinidad - Panel de Control</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {RESTAURANT_PARTNERS.map(partner => (
-                  <button
-                    key={partner.id}
-                    onClick={() => handleLogin(partner)}
-                    className="flex items-center gap-4 bg-white/5 hover:bg-white/10 active:scale-[0.98] border border-white/5 hover:border-brand-orange/30 p-4 rounded-2xl transition-all text-left shadow-lg"
-                  >
-                    <div className="w-14 h-14 bg-white/5 rounded-xl border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                      <img src={partner.logoUrl} alt={partner.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-black text-sm uppercase text-white truncate font-montserrat tracking-tight">{partner.name}</h4>
-                      <p className="text-[9px] text-gray-400 font-bold tracking-widest uppercase font-teko italic mt-1">TEL: {partner.phone}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          })()}
         </div>
       </div>
     );
