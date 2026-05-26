@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'rapidingo-v12';
+const CACHE_NAME = 'rapidingo-cliente-mplyuh81';
 const urlsToCache = [
   './',
   './index.html',
@@ -21,6 +21,11 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) return;
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -37,6 +42,12 @@ self.addEventListener('fetch', event => {
           });
           return networkResponse;
         });
+      })
+      .catch(() => {
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        return new Response('', { status: 504, statusText: 'Offline' });
       })
   );
 });
@@ -55,4 +66,3 @@ self.addEventListener('activate', event => {
       .then(() => self.clients.claim())
   );
 });
-

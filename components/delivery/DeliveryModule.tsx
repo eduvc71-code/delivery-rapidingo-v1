@@ -64,6 +64,72 @@ const parseQuoteRows = (description?: string): QuoteRow[] => {
   return rows;
 };
 
+const getRestaurantStatus = (order: Order) => {
+  let status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERED' = 'PENDING';
+  let prepTime = 0;
+  let timestamp = 0;
+
+  if (order.chatHistory) {
+    for (const msg of order.chatHistory) {
+      if (msg.isSystem) {
+        if (msg.text.startsWith('RESTAURANT_STATUS:ACCEPTED:')) {
+          status = 'ACCEPTED';
+          prepTime = parseInt(msg.text.split(':')[2]) || 0;
+          timestamp = msg.timestamp;
+        } else if (msg.text === 'RESTAURANT_STATUS:READY') {
+          status = 'READY';
+          timestamp = msg.timestamp;
+        } else if (msg.text === 'RESTAURANT_STATUS:DELIVERED') {
+          status = 'DELIVERED';
+          timestamp = msg.timestamp;
+        }
+      }
+    }
+  }
+
+  return { status, prepTime, timestamp };
+};
+
+const DriverCountdownTimer: React.FC<{ acceptedAt: number; prepDurationMinutes: number }> = ({ acceptedAt, prepDurationMinutes }) => {
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const totalMs = prepDurationMinutes * 60 * 1000;
+      const elapsedMs = Date.now() - acceptedAt;
+      return Math.max(0, Math.floor((totalMs - elapsedMs) / 1000));
+    };
+
+    setTimeLeft(calculateTime());
+
+    const timer = setInterval(() => {
+      const remaining = calculateTime();
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [acceptedAt, prepDurationMinutes]);
+
+  if (timeLeft <= 0) {
+    return (
+      <span className="text-brand-orange font-black animate-pulse uppercase tracking-widest text-[11px] block text-center mt-2">
+        ¡TIEMPO LÍMITE EXCEDIDO!
+      </span>
+    );
+  }
+
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  return (
+    <span className="text-white font-mono font-black text-xl tracking-wider block text-center mt-1">
+      {mins.toString().padStart(2, '0')}:{secs.toString().padStart(2, '0')}
+    </span>
+  );
+};
+
 interface DeliveryModuleProps {
     onClose: () => void;
     onMinimize: () => void;
@@ -97,6 +163,13 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
   }, 0);
   const quotedServiceCost = parseFloat(serviceCost);
   const quotedGrandTotal = quotedProductTotal + (isNaN(quotedServiceCost) ? 0 : quotedServiceCost);
+
+  const restStatus = useMemo(() => {
+    if (!activeOrder) return null;
+    const isRestaurant = activeOrder.description.toUpperCase().includes('RESTAURANTE:');
+    if (!isRestaurant) return null;
+    return getRestaurantStatus(activeOrder);
+  }, [activeOrder]);
 
   useEffect(() => {
     if (!activeOrder) {
@@ -356,9 +429,44 @@ export const DeliveryModule: React.FC<DeliveryModuleProps> = ({ onClose, onMinim
                 )}
 
                 {activeOrder.status === OrderStatus.PICKING_UP && (
-                   <button onClick={() => updateOrder({...activeOrder, status: OrderStatus.IN_DELIVERY})} className="w-full bg-brand-orange text-white py-5 rounded-[22px] font-black font-teko italic text-xl uppercase tracking-[4px] shadow-[0_0_20px_rgba(255,106,0,0.4)] flex items-center justify-center gap-3">
-                     <Truck size={24} /> COMPRADO, EN RUTA
-                   </button>
+                   <div className="space-y-4 w-full">
+                     {restStatus && (
+                       <>
+                         {restStatus.status === 'PENDING' && (
+                           <div className="bg-brand-black/90 p-5 rounded-[22px] border border-white/5 text-center space-y-2">
+                             <p className="text-[10px] font-black text-brand-yellow uppercase tracking-[3px] font-teko italic">ESPERANDO CONFIRMACIÓN DEL RESTAURANTE</p>
+                             <p className="text-xs font-bold text-gray-400 leading-relaxed font-montserrat">El restaurante está revisando y confirmando el pedido...</p>
+                           </div>
+                         )}
+                         {restStatus.status === 'ACCEPTED' && (
+                           <div className="bg-brand-black/95 p-6 rounded-[24px] border border-brand-orange/30 text-center space-y-3 shadow-[0_0_30px_rgba(255,106,0,0.15)] relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-orange to-brand-yellow"></div>
+                             <p className="text-[11px] font-black text-brand-yellow uppercase tracking-[4px] font-teko italic">RESTAURANTE PREPARANDO PEDIDO</p>
+                             <p className="text-xs font-bold text-gray-400 font-montserrat">TIEMPO ESTIMADO RESTANTE:</p>
+                             <div className="py-1">
+                               <DriverCountdownTimer acceptedAt={restStatus.timestamp} prepDurationMinutes={restStatus.prepTime} />
+                             </div>
+                           </div>
+                         )}
+                         {restStatus.status === 'READY' && (
+                           <div className="bg-brand-orange border-2 border-brand-yellow/50 p-6 rounded-[24px] text-center space-y-3 shadow-[0_0_40px_rgba(255,106,0,0.4)] animate-bounce-subtle">
+                             <p className="text-xl font-black text-white uppercase tracking-[4px] font-teko italic">¡PEDIDO LISTO!</p>
+                             <p className="text-xs font-black text-white font-montserrat uppercase tracking-tight">El restaurante avisa que ya puedes pasar a recogerlo en el mostrador.</p>
+                           </div>
+                         )}
+                         {restStatus.status === 'DELIVERED' && (
+                           <div className="bg-[#2E7D32]/10 border border-[#2E7D32]/30 p-5 rounded-[22px] text-center space-y-1">
+                             <p className="text-[10px] font-black text-[#2E7D32] uppercase tracking-[3px] font-teko italic">RECOJO COMPLETADO</p>
+                             <p className="text-xs font-bold text-gray-400 font-montserrat">El pedido fue entregado por el restaurante.</p>
+                           </div>
+                         )}
+                       </>
+                     )}
+
+                     <button onClick={() => updateOrder({...activeOrder, status: OrderStatus.IN_DELIVERY})} className="w-full bg-brand-orange text-white py-5 rounded-[22px] font-black font-teko italic text-xl uppercase tracking-[4px] shadow-[0_0_20px_rgba(255,106,0,0.4)] flex items-center justify-center gap-3">
+                       <Truck size={24} /> COMPRADO, EN RUTA
+                     </button>
+                   </div>
                 )}
 
                 {activeOrder.status === OrderStatus.IN_DELIVERY && (

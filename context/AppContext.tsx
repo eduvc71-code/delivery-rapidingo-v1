@@ -8,6 +8,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 interface AppContextType {
   clientUser: User | null;
   deliveryUser: User | null;
+  restaurantUser: User | null;
+  allOrders: Order[];
   assignedDelivery: User | null;
   availableDeliveries: User[];
   currentUser: User | null;
@@ -97,10 +99,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [restaurantUser, setRestaurantUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('rapidEnvios_restaurantUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [appMode, setAppMode] = useState<UserRole | null>(() => {
     const saved = localStorage.getItem('rapidEnvios_appMode');
-    return saved === UserRole.CLIENT || saved === UserRole.DELIVERY ? saved : null;
+    return saved === UserRole.CLIENT || saved === UserRole.DELIVERY || saved === UserRole.RESTAURANT ? (saved as UserRole) : null;
   });
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [pastOrders, setPastOrders] = useState<Order[]>([]);
@@ -138,7 +147,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     // Si ya tenemos datos locales, dejamos de mostrar el cargando rapido
-    if (clientUser || deliveryUser) {
+    if (clientUser || deliveryUser || restaurantUser) {
       setIsCheckingSession(false);
     }
 
@@ -156,6 +165,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           if (savedUser) {
             if (savedUser.role === UserRole.CLIENT) setClientUser(savedUser);
             if (savedUser.role === UserRole.DELIVERY) setDeliveryUser(savedUser);
+            if (savedUser.role === UserRole.RESTAURANT) setRestaurantUser(savedUser);
             setAppMode(savedUser.role);
           }
           setIsCheckingSession(false);
@@ -187,7 +197,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Supabase es la base comun para PWA y APK. Firebase queda solo para Gmail.
   useEffect(() => {
-    const user = appMode === UserRole.DELIVERY ? deliveryUser : clientUser;
+    const user = appMode === UserRole.DELIVERY ? deliveryUser : (appMode === UserRole.RESTAURANT ? restaurantUser : clientUser);
     if (!appMode || !user) return;
 
     let cancelled = false;
@@ -200,6 +210,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ]);
         if (cancelled) return;
 
+        setAllOrders(orders);
+
         const onlineDeliveries = getAvailableDeliveryCandidates(
           user.location || { lat: 0, lng: 0 },
           deliveryUsers,
@@ -207,29 +219,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         );
         setAvailableDeliveries(onlineDeliveries);
 
-        const nextOrder = appMode === UserRole.CLIENT
-          ? orders.find((order) =>
-              order.clientId === user.id &&
-              order.status !== OrderStatus.COMPLETED &&
-              order.status !== OrderStatus.CANCELLED
-            )
-          : orders.find((order) =>
-              order.deliveryId === user.id &&
-              order.status !== OrderStatus.COMPLETED &&
-              order.status !== OrderStatus.CANCELLED
-            ) || orders.find((order) =>
-              order.status === OrderStatus.PENDING_PRICE &&
-              (!order.targetDeliveryId || order.targetDeliveryId === user.id) &&
-              !order.rejectedBy?.includes(user.id)
-            );
-
-        setActiveOrder(nextOrder || null);
-
-        if (nextOrder) {
-          const deliveryId = nextOrder.deliveryId || nextOrder.targetDeliveryId;
-          setAssignedDelivery(onlineDeliveries.find((delivery) => delivery.id === deliveryId) || null);
+        if (appMode === UserRole.RESTAURANT) {
+          setActiveOrder(null);
+          setAssignedDelivery(null);
         } else {
-          setAssignedDelivery(onlineDeliveries[0] || null);
+          const nextOrder = appMode === UserRole.CLIENT
+            ? orders.find((order) =>
+                order.clientId === user.id &&
+                order.status !== OrderStatus.COMPLETED &&
+                order.status !== OrderStatus.CANCELLED
+              )
+            : orders.find((order) =>
+                order.deliveryId === user.id &&
+                order.status !== OrderStatus.COMPLETED &&
+                order.status !== OrderStatus.CANCELLED
+              ) || orders.find((order) =>
+                order.status === OrderStatus.PENDING_PRICE &&
+                (!order.targetDeliveryId || order.targetDeliveryId === user.id) &&
+                !order.rejectedBy?.includes(user.id)
+              );
+
+          setActiveOrder(nextOrder || null);
+
+          if (nextOrder) {
+            const deliveryId = nextOrder.deliveryId || nextOrder.targetDeliveryId;
+            setAssignedDelivery(onlineDeliveries.find((delivery) => delivery.id === deliveryId) || null);
+          } else {
+            setAssignedDelivery(onlineDeliveries[0] || null);
+          }
         }
       } catch (error) {
         console.error('Error escuchando pedidos en Supabase:', error);
@@ -243,7 +260,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [appMode, clientUser?.id, deliveryUser?.id]);
+  }, [appMode, clientUser?.id, deliveryUser?.id, restaurantUser?.id]);
 
   useEffect(() => {
     if (clientUser) localStorage.setItem('rapidEnvios_clientUser', JSON.stringify(clientUser));
@@ -301,12 +318,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           : cleanUser;
 
         if (userToSave.role !== cleanUser.role) {
-          const roleName = userToSave.role === UserRole.CLIENT ? 'CLIENTE' : 'DELIVERY';
+          const roleName = userToSave.role === UserRole.CLIENT ? 'CLIENTE' : (userToSave.role === UserRole.RESTAURANT ? 'RESTAURANTE' : 'DELIVERY');
           alert(`Este correo ya esta registrado como ${roleName}.`);
           return;
         }
 
-        if (!existingUser && !cleanUser.phone) {
+        if (!existingUser && !cleanUser.phone && cleanUser.role !== UserRole.RESTAURANT) {
           alert('Ingresa tu numero de WhatsApp para registrarte por primera vez.');
           return;
         }
@@ -317,6 +334,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
 
         if (userToSave.role === UserRole.CLIENT) setClientUser(userToSave);
+        else if (userToSave.role === UserRole.RESTAURANT) setRestaurantUser(userToSave);
         else setDeliveryUser({ ...userToSave, isOnline: true });
         setAppMode(userToSave.role);
       })
@@ -388,9 +406,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return false;
     }
     const roleToLogout = appMode;
-    const currentUserId = roleToLogout === UserRole.CLIENT ? clientUser?.id : deliveryUser?.id;
+    const currentUserId = roleToLogout === UserRole.CLIENT ? clientUser?.id : (roleToLogout === UserRole.RESTAURANT ? restaurantUser?.id : deliveryUser?.id);
 
-    if (currentUserId) {
+    if (currentUserId && roleToLogout === UserRole.DELIVERY) {
       SupabasePwaApi.setUserOnline(currentUserId, false).catch((error) => {
         console.error('No se pudo marcar usuario offline:', error);
       });
@@ -398,6 +416,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (roleToLogout === UserRole.CLIENT) setClientUser(null);
     if (roleToLogout === UserRole.DELIVERY) setDeliveryUser(null);
+    if (roleToLogout === UserRole.RESTAURANT) setRestaurantUser(null);
 
     setCurrentUser(null);
     setAppMode(null);
@@ -537,7 +556,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
-      clientUser, deliveryUser, currentUser, appMode, activeOrder, pastOrders,
+      clientUser, deliveryUser, restaurantUser, allOrders, currentUser, appMode, activeOrder, pastOrders,
       assignedDelivery, availableDeliveries, isCheckingSession,
       login, registerUser, logout, resetSimulation, selectAppMode, createOrder,
       updateOrder, addChatMessage, switchRole, updateCurrentUserPhone, updateCurrentUserLocation,

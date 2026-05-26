@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ClientModule } from './components/client/ClientModule';
 import { DeliveryModule } from './components/delivery/DeliveryModule';
+import { RestaurantModule } from './components/restaurant/RestaurantModule';
 import { Register } from './components/Register';
 import { UserRole } from './types';
 import { CheckCircle2, Loader2, MapPin } from 'lucide-react';
@@ -10,15 +11,19 @@ const getUrlRole = (): UserRole | null => {
   const injectedRole = (window as Window & { __RAPIDINGO_ROLE?: string }).__RAPIDINGO_ROLE;
   if (injectedRole === 'client') return UserRole.CLIENT;
   if (injectedRole === 'delivery') return UserRole.DELIVERY;
+  if (injectedRole === 'restaurant') return UserRole.RESTAURANT;
 
   const role = new URLSearchParams(window.location.search).get('role');
   if (role === 'client' || role === 'cliente') return UserRole.CLIENT;
   if (role === 'delivery') return UserRole.DELIVERY;
+  if (role === 'restaurant' || role === 'restaurante') return UserRole.RESTAURANT;
 
   const path = window.location.pathname.toLowerCase();
   if (path.includes('/cliente/')) return UserRole.CLIENT;
   if (path.includes('/client/')) return UserRole.CLIENT;
   if (path.includes('/delivery/')) return UserRole.DELIVERY;
+  if (path.includes('/restaurant/')) return UserRole.RESTAURANT;
+  if (path.includes('/restaurante/')) return UserRole.RESTAURANT;
 
   return null;
 };
@@ -126,7 +131,7 @@ const GpsRequiredGate: React.FC<{ role: UserRole; onLocation: (location: { lat: 
 };
 
 const PwaApp: React.FC = () => {
-  const { appMode, clientUser, deliveryUser, registerUser, selectAppMode, isCheckingSession, updateCurrentUserLocation } = useApp();
+  const { appMode, clientUser, deliveryUser, restaurantUser, registerUser, selectAppMode, isCheckingSession, updateCurrentUserLocation } = useApp();
   const forcedRole = getUrlRole();
   const activeRole = forcedRole || UserRole.CLIENT;
 
@@ -212,6 +217,15 @@ const PwaApp: React.FC = () => {
           onMinimize={goHome}
         />
         )}
+        <ThankYouDialog />
+      </ResponsiveShell>
+    );
+  }
+
+  if (activeRole === UserRole.RESTAURANT) {
+    return (
+      <ResponsiveShell>
+        <RestaurantModule />
         <ThankYouDialog />
       </ResponsiveShell>
     );
