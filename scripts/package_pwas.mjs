@@ -44,6 +44,15 @@ const apps = [
     manifestSource: 'manifest-client.json',
     icon192: 'client-192.png',
     icon512: 'client-512.png'
+  },
+  {
+    folder: 'admin',
+    role: 'admin',
+    name: 'Rapidingo Administracion/Operadora',
+    theme: '#FF6A00',
+    manifestSource: 'manifest-client.json',
+    icon192: 'client-192.png',
+    icon512: 'client-512.png'
   }
 ];
 const cacheSuffix = Date.now().toString(36);

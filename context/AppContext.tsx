@@ -9,6 +9,8 @@ interface AppContextType {
   clientUser: User | null;
   deliveryUser: User | null;
   restaurantUser: User | null;
+  adminUser: User | null;
+  operatorUser: User | null;
   allOrders: Order[];
   assignedDelivery: User | null;
   availableDeliveries: User[];
@@ -32,6 +34,7 @@ interface AppContextType {
   thankYouDialogMessage: string;
   setShowThankYouDialog: (show: boolean) => void;
   playNotificationSound: () => void;
+  dispatchMode: 'AUTOMATIC' | 'OPERATOR';
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -105,12 +108,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [adminUser, setAdminUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('rapidEnvios_adminUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [operatorUser, setOperatorUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('rapidEnvios_operatorUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [dispatchMode, setDispatchMode] = useState<'AUTOMATIC' | 'OPERATOR'>('AUTOMATIC');
+
   const [allOrders, setAllOrders] = useState<Order[]>([]);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [appMode, setAppMode] = useState<UserRole | null>(() => {
     const saved = localStorage.getItem('rapidEnvios_appMode');
-    return saved === UserRole.CLIENT || saved === UserRole.DELIVERY || saved === UserRole.RESTAURANT ? (saved as UserRole) : null;
+    return saved === UserRole.CLIENT || saved === UserRole.DELIVERY || saved === UserRole.RESTAURANT || saved === UserRole.ADMIN || saved === UserRole.OPERATOR ? (saved as UserRole) : null;
   });
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [pastOrders, setPastOrders] = useState<Order[]>([]);
@@ -148,7 +163,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     // Si ya tenemos datos locales, dejamos de mostrar el cargando rapido
-    if (clientUser || deliveryUser || restaurantUser) {
+    if (clientUser || deliveryUser || restaurantUser || adminUser) {
       setIsCheckingSession(false);
     }
 
@@ -167,6 +182,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             if (savedUser.role === UserRole.CLIENT) setClientUser(savedUser);
             if (savedUser.role === UserRole.DELIVERY) setDeliveryUser(savedUser);
             if (savedUser.role === UserRole.RESTAURANT) setRestaurantUser(savedUser);
+            if (savedUser.role === UserRole.ADMIN) setAdminUser(savedUser);
+            if (savedUser.role === UserRole.OPERATOR) setOperatorUser(savedUser);
             setAppMode(savedUser.role);
           }
           setIsCheckingSession(false);
@@ -198,20 +215,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Supabase es la base comun para PWA y APK. Firebase queda solo para Gmail.
   useEffect(() => {
-    const user = appMode === UserRole.DELIVERY ? deliveryUser : (appMode === UserRole.RESTAURANT ? restaurantUser : clientUser);
+    const user = appMode === UserRole.DELIVERY 
+      ? deliveryUser 
+      : (appMode === UserRole.RESTAURANT 
+          ? restaurantUser 
+          : (appMode === UserRole.ADMIN 
+              ? adminUser 
+              : (appMode === UserRole.OPERATOR ? operatorUser : clientUser)));
     if (!appMode || !user) return;
 
     let cancelled = false;
 
     const loadOrders = async () => {
       try {
-        const [orders, deliveryUsers] = await Promise.all([
+        const [orders, deliveryUsers, mode] = await Promise.all([
           SupabasePwaApi.getOrders(),
           SupabasePwaApi.getDeliveryUsers(),
+          SupabasePwaApi.getDispatchMode(),
         ]);
         if (cancelled) return;
 
         setAllOrders(orders);
+        setDispatchMode(mode as 'AUTOMATIC' | 'OPERATOR');
+
+        if (appMode === UserRole.ADMIN || appMode === UserRole.OPERATOR) {
+          setAvailableDeliveries(deliveryUsers);
+          setActiveOrder(null);
+          setAssignedDelivery(null);
+          return;
+        }
 
         const onlineDeliveries = getAvailableDeliveryCandidates(
           user.location || { lat: 0, lng: 0 },
@@ -236,7 +268,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 order.status !== OrderStatus.CANCELLED
               ) || orders.find((order) =>
                 order.status === OrderStatus.PENDING_PRICE &&
-                (!order.targetDeliveryId || order.targetDeliveryId === user.id) &&
+                order.targetDeliveryId === user.id &&
                 !order.rejectedBy?.includes(user.id)
               );
 
@@ -261,7 +293,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [appMode, clientUser?.id, deliveryUser?.id, restaurantUser?.id]);
+  }, [appMode, clientUser?.id, deliveryUser?.id, restaurantUser?.id, adminUser?.id]);
 
   useEffect(() => {
     if (clientUser) localStorage.setItem('rapidEnvios_clientUser', JSON.stringify(clientUser));
@@ -272,6 +304,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (deliveryUser) localStorage.setItem('rapidEnvios_deliveryUser', JSON.stringify(deliveryUser));
     else localStorage.removeItem('rapidEnvios_deliveryUser');
   }, [deliveryUser]);
+
+  useEffect(() => {
+    if (adminUser) localStorage.setItem('rapidEnvios_adminUser', JSON.stringify(adminUser));
+    else localStorage.removeItem('rapidEnvios_adminUser');
+  }, [adminUser]);
+
+  useEffect(() => {
+    if (operatorUser) localStorage.setItem('rapidEnvios_operatorUser', JSON.stringify(operatorUser));
+    else localStorage.removeItem('rapidEnvios_operatorUser');
+  }, [operatorUser]);
 
   useEffect(() => {
     const storedOrder = localStorage.getItem('rapidEnvios_activeOrder');
@@ -319,12 +361,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           : cleanUser;
 
         if (userToSave.role !== cleanUser.role) {
-          const roleName = userToSave.role === UserRole.CLIENT ? 'CLIENTE' : (userToSave.role === UserRole.RESTAURANT ? 'RESTAURANTE' : 'DELIVERY');
+          const roleName = userToSave.role === UserRole.CLIENT 
+            ? 'CLIENTE' 
+            : (userToSave.role === UserRole.RESTAURANT 
+                ? 'RESTAURANTE' 
+                : (userToSave.role === UserRole.ADMIN ? 'ADMINISTRADOR' : 'DELIVERY'));
           alert(`Este correo ya esta registrado como ${roleName}.`);
           return;
         }
 
-        if (!existingUser && !cleanUser.phone && cleanUser.role !== UserRole.RESTAURANT) {
+        if (!existingUser && !cleanUser.phone && cleanUser.role !== UserRole.RESTAURANT && cleanUser.role !== UserRole.ADMIN) {
           alert('Ingresa tu numero de WhatsApp para registrarte por primera vez.');
           return;
         }
@@ -336,6 +382,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (userToSave.role === UserRole.CLIENT) setClientUser(userToSave);
         else if (userToSave.role === UserRole.RESTAURANT) setRestaurantUser(userToSave);
+        else if (userToSave.role === UserRole.ADMIN) setAdminUser(userToSave);
+        else if (userToSave.role === UserRole.OPERATOR) setOperatorUser(userToSave);
         else setDeliveryUser({ ...userToSave, isOnline: true });
         setAppMode(userToSave.role);
       })
@@ -407,7 +455,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return false;
     }
     const roleToLogout = appMode;
-    const currentUserId = roleToLogout === UserRole.CLIENT ? clientUser?.id : (roleToLogout === UserRole.RESTAURANT ? restaurantUser?.id : deliveryUser?.id);
+    const currentUserId = roleToLogout === UserRole.CLIENT 
+      ? clientUser?.id 
+      : (roleToLogout === UserRole.RESTAURANT 
+          ? restaurantUser?.id 
+          : (roleToLogout === UserRole.ADMIN 
+              ? adminUser?.id 
+              : (roleToLogout === UserRole.OPERATOR ? operatorUser?.id : deliveryUser?.id)));
 
     if (currentUserId && roleToLogout === UserRole.DELIVERY) {
       SupabasePwaApi.setUserOnline(currentUserId, false).catch((error) => {
@@ -418,6 +472,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (roleToLogout === UserRole.CLIENT) setClientUser(null);
     if (roleToLogout === UserRole.DELIVERY) setDeliveryUser(null);
     if (roleToLogout === UserRole.RESTAURANT) setRestaurantUser(null);
+    if (roleToLogout === UserRole.ADMIN) setAdminUser(null);
+    if (roleToLogout === UserRole.OPERATOR) setOperatorUser(null);
 
     setCurrentUser(null);
     setAppMode(null);
@@ -435,23 +491,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!clientUser) return;
 
     try {
-      const [deliveryUsers, orders] = await Promise.all([
-        SupabasePwaApi.getDeliveryUsers(),
-        SupabasePwaApi.getOrders(),
-      ]);
-      const destination = order.destinationLocation || order.location;
-      const onlineDeliveries = getAvailableDeliveryCandidates(destination, deliveryUsers, orders);
-      setAvailableDeliveries(onlineDeliveries);
-      const targetDelivery = selectTargetDelivery(destination, deliveryUsers, orders);
-      const targetDeliveryId = targetDelivery?.id || null;
+      const mode = await SupabasePwaApi.getDispatchMode();
+      
+      let targetDeliveryId: string | null = null;
+      let deliveryName: string | undefined = undefined;
+      let deliveryPhone: string | undefined = undefined;
+      let targetDelivery: User | null = null;
+
+      if (mode === 'AUTOMATIC') {
+        const [deliveryUsers, orders] = await Promise.all([
+          SupabasePwaApi.getDeliveryUsers(),
+          SupabasePwaApi.getOrders(),
+        ]);
+        const destination = order.destinationLocation || order.location;
+        const onlineDeliveries = getAvailableDeliveryCandidates(destination, deliveryUsers, orders);
+        setAvailableDeliveries(onlineDeliveries);
+        targetDelivery = selectTargetDelivery(destination, deliveryUsers, orders);
+        targetDeliveryId = targetDelivery?.id || null;
+        deliveryName = targetDelivery?.name;
+        deliveryPhone = targetDelivery?.phone;
+      }
 
       const assignedOrder = {
         ...order,
         clientName: clientUser.name,
         clientPhone: clientUser.phone,
         targetDeliveryId: targetDeliveryId || undefined,
-        deliveryName: targetDelivery?.name,
-        deliveryPhone: targetDelivery?.phone,
+        deliveryName,
+        deliveryPhone,
       };
       await SupabasePwaApi.createOrder(assignedOrder, targetDeliveryId, clientUser);
       setAssignedDelivery(targetDelivery);
@@ -556,7 +623,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const switchRole = (role: UserRole) => {};
+  const switchRole = (role: UserRole) => {
+    setAppMode(role);
+    localStorage.setItem('rapidEnvios_appMode', role);
+  };
 
   const playNotificationSound = () => {
     try {
@@ -617,8 +687,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
-      clientUser, deliveryUser, restaurantUser, allOrders, currentUser, appMode, activeOrder, pastOrders,
-      assignedDelivery, availableDeliveries, isCheckingSession,
+      clientUser, deliveryUser, restaurantUser, adminUser, operatorUser, allOrders, currentUser, appMode, activeOrder, pastOrders,
+      assignedDelivery, availableDeliveries, isCheckingSession, dispatchMode,
       login, registerUser, logout, resetSimulation, selectAppMode, createOrder,
       updateOrder, addChatMessage, switchRole, updateCurrentUserPhone, updateCurrentUserLocation,
       showThankYouDialog, thankYouDialogMessage, setShowThankYouDialog, playNotificationSound

@@ -210,7 +210,7 @@ const getDeviceRestaurantZoom = () => {
   return 1;
 };
 
-const buildRestaurantOrderDescription = (items: TempRestaurantItem[]) => {
+const buildRestaurantOrderDescription = (items: TempRestaurantItem[], dispatchMode: string) => {
   const groups = items.reduce<Record<string, TempRestaurantItem[]>>((acc, item) => {
     acc[item.restaurantName] = [...(acc[item.restaurantName] || []), item];
     return acc;
@@ -230,7 +230,9 @@ const buildRestaurantOrderDescription = (items: TempRestaurantItem[]) => {
       ].filter(Boolean).join('\n');
     }),
     `TOTAL PLATOS: ${items.reduce((sum, item) => sum + item.quantity, 0)}`,
-    'Cliente espera cotizacion del delivery.'
+    dispatchMode === 'OPERATOR'
+      ? 'Cliente espera cotizacion de la operadora.'
+      : 'Cliente espera cotizacion del delivery.'
   ].join('\n\n');
 };
 
@@ -348,10 +350,14 @@ const DestinationPickerModal: React.FC<{
     const maplibregl = (window as Window & { maplibregl?: any }).maplibregl;
     if (!mapRef.current || !maplibregl) return;
 
+    // Salvaguarda de coordenadas iniciales en Trinidad si el GPS devolvió 0 o valores nulos
+    const startLng = initialPoint.lng && initialPoint.lng !== 0 ? initialPoint.lng : DEFAULT_DELIVERY_POINT.lng;
+    const startLat = initialPoint.lat && initialPoint.lat !== 0 ? initialPoint.lat : DEFAULT_DELIVERY_POINT.lat;
+
     const map = new maplibregl.Map({
       container: mapRef.current,
       style: `https://api.maptiler.com/maps/${isSatellite ? 'hybrid' : 'streets-v2'}/style.json?key=${MAPTILER_KEY}`,
-      center: [initialPoint.lng, initialPoint.lat],
+      center: [startLng, startLat],
       zoom: 17,
       pitch: 58,
       bearing: -18,
@@ -364,7 +370,7 @@ const DestinationPickerModal: React.FC<{
     markerEl.className = 'h-10 w-10 rounded-full bg-brand-orange border-2 border-white shadow-2xl flex items-center justify-center';
     markerEl.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
     const marker = new maplibregl.Marker({ element: markerEl, draggable: true, anchor: 'bottom' })
-      .setLngLat([initialPoint.lng, initialPoint.lat])
+      .setLngLat([startLng, startLat])
       .addTo(map);
     markerInstance.current = marker;
 
@@ -387,9 +393,16 @@ const DestinationPickerModal: React.FC<{
       updatePoint(event.lngLat.lat, event.lngLat.lng);
     });
 
-    setTimeout(() => map.resize(), 120);
+    // ResizeObserver para redimensionar el mapa a medida que se anima el modal
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize();
+    });
+    if (mapRef.current) {
+      resizeObserver.observe(mapRef.current);
+    }
 
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapInstance.current = null;
       markerInstance.current = null;
@@ -711,7 +724,7 @@ interface ClientModuleProps {
 }
 
 export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
-  const { clientUser, activeOrder, createOrder, updateOrder, logout, pastOrders, addChatMessage, assignedDelivery, availableDeliveries, updateCurrentUserPhone } = useApp();
+  const { clientUser, activeOrder, createOrder, updateOrder, logout, pastOrders, addChatMessage, assignedDelivery, availableDeliveries, updateCurrentUserPhone, dispatchMode } = useApp();
   const [activeTab, setActiveTab] = useState<'HOME' | 'HISTORY' | 'PROFILE'>('HOME');
   const [view, setView] = useState<'MENU' | 'FORM' | 'TRACKING'>('MENU');
   const [selectedType, setSelectedType] = useState<OrderType | null>(null);
@@ -739,6 +752,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   const lastMenuPinchDistanceRef = useRef<number | null>(null);
   
   const [message, setMessage] = useState<string | null>(null);
+  const [completedTimerActive, setCompletedTimerActive] = useState(false);
 
   const openDestinationPicker = async (isAlternative: boolean) => {
     const point = destinationPoint || await getCurrentDeliveryPoint();
@@ -760,6 +774,19 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
       setIsLocationConfirmedByUser(false);
     }
   }, [activeOrder]);
+
+  // Cierre de sesión automático tras 3 minutos de completar el pedido
+  useEffect(() => {
+    if (activeOrder) {
+      setCompletedTimerActive(false);
+    } else if (!activeOrder && completedTimerActive) {
+      const timer = setTimeout(() => {
+        closeClientApp();
+      }, 3 * 60 * 1000); // 3 minutos
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeOrder, completedTimerActive]);
 
   useEffect(() => {
     if (isChatOpen) {
@@ -928,7 +955,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   const handleOrderSubmit = () => {
     if (!clientUser || !selectedType) return;
     const normalizedOrderText = selectedType === OrderType.RESTAURANT
-      ? buildRestaurantOrderDescription(restaurantItems)
+      ? buildRestaurantOrderDescription(restaurantItems, dispatchMode)
       : orderText.trim().toUpperCase();
     if (!normalizedOrderText.trim()) return;
 
@@ -1026,6 +1053,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
 
   const confirmReceivedOrder = () => {
     if (!activeOrder) return;
+    setCompletedTimerActive(true);
     updateOrder({ ...activeOrder, status: OrderStatus.COMPLETED, completedAt: Date.now(), chatHistory: [] });
   };
 
@@ -1473,7 +1501,11 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                   <h2 className="text-xl font-black text-white tracking-tighter font-montserrat uppercase italic">Seguimiento</h2>
                   <div className="flex items-center gap-2 bg-brand-orange/20 border border-brand-orange/40 px-3 py-1 rounded-md">
                     <span className="w-1.5 h-1.5 rounded-full bg-brand-orange animate-pulse"></span>
-                    <span className="text-[10px] font-black text-brand-orange uppercase tracking-widest font-teko italic">{getOrderStatusLabel(activeOrder.status)}</span>
+                    <span className="text-[10px] font-black text-brand-orange uppercase tracking-widest font-teko italic">
+                      {activeOrder.status === OrderStatus.PENDING_PRICE
+                        ? (dispatchMode === 'OPERATOR' ? 'ESPERANDO COTIZACION OPERADORA' : 'ESPERANDO REPARTIDOR')
+                        : getOrderStatusLabel(activeOrder.status)}
+                    </span>
                   </div>
                 </div>
                 

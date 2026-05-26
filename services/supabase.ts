@@ -40,7 +40,7 @@ type SupabaseUserRow = {
   phone?: string;
   email?: string;
   role: UserRole;
-  location?: SupabaseLatLng | null;
+  location?: unknown | null;
   online?: boolean;
   device_id?: string;
 };
@@ -197,13 +197,31 @@ function rowToOrder(row: SupabaseOrderRow): Order {
 }
 
 function userToRow(user: User): SupabaseUserRow {
+  const dbRole = (user.role === UserRole.RESTAURANT || user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR) 
+    ? UserRole.CLIENT 
+    : user.role;
+
+  // Almacenamos selfie e isVerified de forma segura dentro del objeto jsonb de location
+  // para no requerir alterar la estructura de columnas de Supabase ni causar errores 400.
+  const locationPayload = user.location ? {
+    latitude: user.location.lat,
+    longitude: user.location.lng,
+    selfie: user.selfie || null,
+    isVerified: user.isVerified ?? true
+  } : {
+    latitude: 0,
+    longitude: 0,
+    selfie: user.selfie || null,
+    isVerified: user.isVerified ?? true
+  };
+
   return {
     id: user.id,
     name: user.name,
     phone: user.phone || '',
     email: user.email || '',
-    role: user.role === UserRole.RESTAURANT ? (UserRole.CLIENT as any) : user.role,
-    location: toSupabaseLocation(user.location),
+    role: dbRole,
+    location: locationPayload,
     online: user.role === UserRole.DELIVERY ? user.isOnline !== false : false,
     device_id: user.id,
   };
@@ -212,17 +230,35 @@ function userToRow(user: User): SupabaseUserRow {
 function rowToUser(row: SupabaseUserRow): User {
   let role = row.role;
   if (role === UserRole.CLIENT && row.email && row.email.endsWith('@rapidingo.com')) {
-    role = UserRole.RESTAURANT;
+    const cleanEmail = row.email.trim().toLowerCase();
+    if (cleanEmail.startsWith('admin')) {
+      role = UserRole.ADMIN;
+    } else if (cleanEmail.startsWith('operador') || cleanEmail.startsWith('operator')) {
+      role = UserRole.OPERATOR;
+    } else {
+      role = UserRole.RESTAURANT;
+    }
   }
+
+  const locObj = row.location as any;
+  const selfie = locObj?.selfie || undefined;
+  const isVerified = locObj?.isVerified !== undefined ? Boolean(locObj.isVerified) : true;
+
+  // Filtrar lat/lng 0 falsos creados para guardar metadata
+  const location = (locObj?.latitude === 0 && locObj?.longitude === 0) 
+    ? undefined 
+    : fromSupabaseLocation(row.location as any);
+
   return {
     id: row.id,
     name: row.name,
     phone: row.phone || '',
     email: row.email || '',
     role: role,
-    location: fromSupabaseLocation(row.location),
+    location: location,
     isOnline: Boolean(row.online),
-    isVerified: true,
+    selfie: selfie,
+    isVerified: isVerified,
   };
 }
 
@@ -357,5 +393,37 @@ export const SupabasePwaApi = {
     await request(`/rest/v1/orders?id=eq.${encodeURIComponent(cleanOrder.id)}`, {
       method: 'DELETE',
     });
+  },
+
+  async getDispatchMode(): Promise<string> {
+    try {
+      const rows = await request<{ key: string; value: string }[]>('/rest/v1/settings?key=eq.dispatch_mode&limit=1');
+      return rows[0]?.value || 'AUTOMATIC';
+    } catch (error) {
+      console.warn('No se pudo leer settings de Supabase. Usando local:', error);
+      return localStorage.getItem('rapidEnvios_fallback_dispatch_mode') || 'AUTOMATIC';
+    }
+  },
+
+  async setDispatchMode(mode: string): Promise<void> {
+    try {
+      await request('/rest/v1/settings?key=eq.dispatch_mode', {
+        method: 'PATCH',
+        body: JSON.stringify({ value: mode }),
+      });
+    } catch (error) {
+      console.error('No se pudo guardar settings en Supabase:', error);
+      localStorage.setItem('rapidEnvios_fallback_dispatch_mode', mode);
+    }
+  },
+
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const rows = await request<SupabaseUserRow[]>('/rest/v1/users?order=name.asc');
+      return rows.map(rowToUser);
+    } catch (error) {
+      console.error('Error al obtener todos los usuarios:', error);
+      return [];
+    }
   },
 };

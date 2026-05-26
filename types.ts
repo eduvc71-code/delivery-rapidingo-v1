@@ -1,7 +1,9 @@
 export enum UserRole {
   CLIENT = 'CLIENT',
   DELIVERY = 'DELIVERY',
-  RESTAURANT = 'RESTAURANT'
+  RESTAURANT = 'RESTAURANT',
+  ADMIN = 'ADMIN',
+  OPERATOR = 'OPERATOR'
 }
 
 export enum OrderStatus {

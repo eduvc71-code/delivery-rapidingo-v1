@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rapidingo-delivery-mpm87mug';
+const CACHE_NAME = 'rapidingo-delivery-mpmuat85';
 const urlsToCache = [
   './',
   './index.html',

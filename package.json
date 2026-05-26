@@ -13,6 +13,7 @@
     "deploy:cloudflare:cliente": "npm run build:pwas && npx wrangler pages deploy dist/cliente --project-name rapidingo-cliente",
     "deploy:cloudflare:delivery": "npm run build:pwas && npx wrangler pages deploy dist/delivery --project-name rapidingo-delivery",
     "deploy:cloudflare:restaurante": "npm run build:pwas && npx wrangler pages deploy dist/restaurante --project-name rapidingo-restaurante",
+    "deploy:cloudflare:admin": "npm run build:pwas && npx wrangler pages deploy dist/admin --project-name rapidingo-admin",
     "preview": "vite preview",
     "predeploy": "npm run build:pwas",
     "deploy": "gh-pages -d dist"

@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ClientModule } from './components/client/ClientModule';
 import { DeliveryModule } from './components/delivery/DeliveryModule';
 import { RestaurantModule } from './components/restaurant/RestaurantModule';
+import { AdminModule } from './components/admin/AdminModule';
 import { Register } from './components/Register';
 import { UserRole } from './types';
 import { CheckCircle2, Loader2, MapPin } from 'lucide-react';
@@ -12,11 +13,15 @@ const getUrlRole = (): UserRole | null => {
   if (injectedRole === 'client') return UserRole.CLIENT;
   if (injectedRole === 'delivery') return UserRole.DELIVERY;
   if (injectedRole === 'restaurant') return UserRole.RESTAURANT;
+  if (injectedRole === 'admin') return UserRole.ADMIN;
+  if (injectedRole === 'operador' || injectedRole === 'operator') return UserRole.OPERATOR;
 
   const role = new URLSearchParams(window.location.search).get('role');
   if (role === 'client' || role === 'cliente') return UserRole.CLIENT;
   if (role === 'delivery') return UserRole.DELIVERY;
   if (role === 'restaurant' || role === 'restaurante') return UserRole.RESTAURANT;
+  if (role === 'admin') return UserRole.ADMIN;
+  if (role === 'operador' || role === 'operator') return UserRole.OPERATOR;
 
   const path = window.location.pathname.toLowerCase();
   if (path.includes('/cliente/')) return UserRole.CLIENT;
@@ -24,6 +29,9 @@ const getUrlRole = (): UserRole | null => {
   if (path.includes('/delivery/')) return UserRole.DELIVERY;
   if (path.includes('/restaurant/')) return UserRole.RESTAURANT;
   if (path.includes('/restaurante/')) return UserRole.RESTAURANT;
+  if (path.includes('/admin/')) return UserRole.ADMIN;
+  if (path.includes('/operador/')) return UserRole.OPERATOR;
+  if (path.includes('/operator/')) return UserRole.OPERATOR;
 
   return null;
 };
@@ -226,6 +234,15 @@ const PwaApp: React.FC = () => {
     return (
       <ResponsiveShell>
         <RestaurantModule />
+        <ThankYouDialog />
+      </ResponsiveShell>
+    );
+  }
+
+  if (activeRole === UserRole.ADMIN || activeRole === UserRole.OPERATOR) {
+    return (
+      <ResponsiveShell>
+        <AdminModule role={activeRole} />
         <ThankYouDialog />
       </ResponsiveShell>
     );
