@@ -409,29 +409,45 @@ fun CompleteWhatsappDialog(viewModel: MainViewModel, role: UserRole) {
         confirmButton = {
             Button(
                 onClick = { viewModel.updateWhatsappPhone(phone, context) },
-                enabled = phone.isNotBlank()
+                enabled = phone.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ApkBrandOrange,
+                    disabledContainerColor = Color(0xFF2A2A2A),
+                    disabledContentColor = Color(0xFF666666)
+                )
             ) {
-                Text("GUARDAR", fontWeight = FontWeight.Bold)
+                Text("GUARDAR", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         title = {
             Text(
                 if (role == UserRole.CLIENT) "WhatsApp del cliente" else "WhatsApp del delivery",
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
             )
         },
         text = {
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
-                label = { Text("Numero de WhatsApp") },
+                label = { Text("Numero de WhatsApp", color = ApkBrandMuted) },
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Phone, null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done)
+                leadingIcon = { Icon(Icons.Default.Phone, null, tint = ApkBrandOrange) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+                textStyle = TextStyle(fontWeight = FontWeight.Bold, color = Color.White),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ApkBrandOrange,
+                    unfocusedBorderColor = ApkBrandBorder,
+                    focusedContainerColor = ApkBrandPanelSoft,
+                    unfocusedContainerColor = ApkBrandPanelSoft,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = ApkBrandOrange
+                )
             )
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White
+        containerColor = ApkBrandPanel
     )
 }
 
@@ -442,17 +458,17 @@ fun ThankYouDialog(viewModel: MainViewModel) {
         confirmButton = {
             Button(
                 onClick = { viewModel.showThankYouDialog = false },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange),
                 shape = RoundedCornerShape(30.dp)
             ) {
-                Text("CERRAR", fontWeight = FontWeight.Bold)
+                Text("CERRAR", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Celebration, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(64.dp))
+                Icon(Icons.Default.Celebration, contentDescription = null, tint = ApkBrandYellow, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("¡MUCHAS GRACIAS!", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                Text("¡MUCHAS GRACIAS!", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = Color.White)
             }
         },
         text = {
@@ -462,11 +478,11 @@ fun ThankYouDialog(viewModel: MainViewModel) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.Black
+                color = Color.White
             )
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White
+        containerColor = ApkBrandPanel
     )
 }
 
@@ -1431,19 +1447,19 @@ fun RestaurantOrderDialog(
                     }
                 }
 
-                // Panel de Pedido (Blanco) - Simula el 42% de la PWA
+                // Panel de pedido alineado con la marca.
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    color = Color.White,
+                    color = ApkBrandPanel,
                     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text("RESERVA DE MENU", fontWeight = FontWeight.Black, fontSize = 12.sp, color = ApkBrandOrange, letterSpacing = 1.sp)
-                        Text(restaurant.name.uppercase(), fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF161616))
+                        Text(restaurant.name.uppercase(), fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.White)
 
                         Spacer(Modifier.height(12.dp))
 
@@ -1458,8 +1474,8 @@ fun RestaurantOrderDialog(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(Color(0xFFF9F9F9), RoundedCornerShape(16.dp))
-                                        .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(16.dp))
+                                        .background(ApkBrandPanelSoft, RoundedCornerShape(16.dp))
+                                        .border(1.dp, ApkBrandBorder, RoundedCornerShape(16.dp))
                                         .padding(10.dp)
                                 ) {
                                     Row(
@@ -1469,29 +1485,32 @@ fun RestaurantOrderDialog(
                                         OutlinedTextField(
                                             value = row.productName,
                                             onValueChange = { draftRows[index] = row.copy(productName = it.uppercase()) },
-                                            placeholder = { Text("¿QUÉ VAS A PEDIR?", fontSize = 12.sp, color = Color.Gray) },
+                                            placeholder = { Text("¿QUÉ VAS A PEDIR?", fontSize = 12.sp, color = ApkBrandMuted) },
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp),
-                                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF161616)),
+                                            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
                                             singleLine = true,
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = ApkBrandOrange,
-                                                unfocusedBorderColor = Color(0xFFE0E0E0),
-                                                focusedContainerColor = Color.White,
-                                                unfocusedContainerColor = Color.White,
-                                                focusedTextColor = Color(0xFF161616),
-                                                unfocusedTextColor = Color(0xFF161616)
+                                                unfocusedBorderColor = ApkBrandBorder,
+                                                focusedContainerColor = ApkBrandPanel,
+                                                unfocusedContainerColor = ApkBrandPanel,
+                                                focusedTextColor = Color.White,
+                                                unfocusedTextColor = Color.White,
+                                                focusedPlaceholderColor = ApkBrandMuted,
+                                                unfocusedPlaceholderColor = ApkBrandMuted,
+                                                cursorColor = ApkBrandOrange
                                             )
                                         )
                                         Spacer(Modifier.width(10.dp))
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp)).border(1.dp, ApkBrandOrange.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                                            modifier = Modifier.background(ApkBrandPanel, RoundedCornerShape(10.dp)).border(1.dp, ApkBrandOrange.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                                         ) {
                                             IconButton(onClick = { if (row.quantity > 1) draftRows[index] = row.copy(quantity = row.quantity - 1) }, modifier = Modifier.size(36.dp)) {
                                                 Icon(Icons.Default.Remove, null, tint = ApkBrandOrange, modifier = Modifier.size(16.dp))
                                             }
-                                            Text("${row.quantity}", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF161616), modifier = Modifier.padding(horizontal = 6.dp))
+                                            Text("${row.quantity}", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp))
                                             IconButton(onClick = { draftRows[index] = row.copy(quantity = row.quantity + 1) }, modifier = Modifier.size(36.dp)) {
                                                 Icon(Icons.Default.Add, null, tint = ApkBrandOrange, modifier = Modifier.size(16.dp))
                                             }
@@ -1518,7 +1537,7 @@ fun RestaurantOrderDialog(
                                 onClick = { draftRows.add(TempOrderItem(restaurantId = restaurant.id, restaurantName = restaurant.name, productName = "")) },
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ApkBrandOrange),
+                                colors = ButtonDefaults.buttonColors(containerColor = ApkBrandPanelSoft, contentColor = ApkBrandOrange),
                                 border = BorderStroke(1.5.dp, ApkBrandOrange)
                             ) {
                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp))
@@ -1542,7 +1561,11 @@ fun RestaurantOrderDialog(
                             enabled = draftRows.any { it.productName.isNotBlank() },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
                             shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ApkBrandOrange,
+                                disabledContainerColor = Color(0xFF2A2A2A),
+                                disabledContentColor = Color(0xFF666666)
+                            )
                         ) {
                             Icon(Icons.Default.ReceiptLong, null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
@@ -1599,10 +1622,10 @@ fun OrderSummaryDialog(
                     }
                 }
 
-                // Cuerpo Blanco (Contenedor Excel)
+                // Cuerpo Oscuro (Contenedor Excel alineado con la marca)
                 Surface(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    color = Color.White,
+                    color = ApkBrandPanel,
                     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -1610,7 +1633,7 @@ fun OrderSummaryDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF263238), RoundedCornerShape(8.dp))
+                                .background(ApkBrandPanelSoft, RoundedCornerShape(8.dp))
                                 .padding(10.dp)
                         ) {
                             Text("DESCRIPCIÓN DEL PEDIDO", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
@@ -1628,12 +1651,12 @@ fun OrderSummaryDialog(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .border(0.5.dp, Color.LightGray)
+                                        .border(0.5.dp, ApkBrandBorder)
                                         .padding(vertical = 4.dp, horizontal = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(item.productName.uppercase(), fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color(0xFF161616), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(item.productName.uppercase(), fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(item.restaurantName.uppercase(), fontSize = 9.sp, color = ApkBrandOrange, fontWeight = FontWeight.Bold)
                                     }
                                     Text(
@@ -1641,12 +1664,12 @@ fun OrderSummaryDialog(
                                         modifier = Modifier.width(50.dp),
                                         fontWeight = FontWeight.Black,
                                         fontSize = 15.sp,
-                                        color = Color(0xFF161616),
+                                        color = ApkBrandYellow,
                                         textAlign = TextAlign.Center
                                     )
                                     Row(modifier = Modifier.width(60.dp), horizontalArrangement = Arrangement.End) {
                                         IconButton(onClick = { onEditItem(item.id) }, modifier = Modifier.size(30.dp)) {
-                                            Icon(Icons.Default.Visibility, null, tint = Color(0xFF1976D2), modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Default.Visibility, null, tint = ApkBrandOrange, modifier = Modifier.size(18.dp))
                                         }
                                         IconButton(onClick = { onRemoveItem(item.id) }, modifier = Modifier.size(30.dp)) {
                                             Icon(Icons.Default.Delete, null, tint = Color.Red.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
@@ -1704,7 +1727,7 @@ fun OrderSummaryDialog(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("SEGUIR AGREGANDO MÁS", color = Color(0xFF455A64), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("SEGUIR AGREGANDO MÁS", color = ApkBrandMuted, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
                 }

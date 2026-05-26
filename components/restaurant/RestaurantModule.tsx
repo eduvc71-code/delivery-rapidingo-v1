@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserRole, Order, OrderStatus, ChatMessage } from '../../types';
-import { 
-  Clock, CheckCircle, CookingPot, Utensils, LogOut, PhoneCall, 
+import {
+  Clock, CheckCircle, CookingPot, Utensils, LogOut, PhoneCall,
   History, ChefHat, AlertCircle, ShoppingBag, ShieldAlert,
   Eye, EyeOff
 } from 'lucide-react';
@@ -242,7 +242,7 @@ export const RestaurantModule: React.FC = () => {
       const correctPassword = RESTAURANT_PASSWORDS[partner.id];
       return correctPassword && authPassword.toLowerCase() === correctPassword.toLowerCase();
     });
-    
+
     if (matchingPartner) {
       registerUser({
         id: matchingPartner.id,
@@ -350,7 +350,7 @@ export const RestaurantModule: React.FC = () => {
             return (
               <div className="w-full max-w-sm bg-brand-black/95 border border-brand-orange/30 p-6 rounded-[2rem] space-y-6 shadow-[0_15px_40px_rgba(0,0,0,0.8)] relative overflow-hidden animate-scale-up">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-orange via-brand-yellow to-brand-orange"></div>
-                
+
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div>
                     <h2 className="text-2xl font-black text-brand-orange font-montserrat tracking-tight italic">¡BIENVENIDO!</h2>
@@ -368,9 +368,9 @@ export const RestaurantModule: React.FC = () => {
                           <Utensils size={40} className="animate-pulse" />
                         </div>
                         {/* Filled/Clipped Image */}
-                        <img 
-                          src={bestMatchPartner.logoUrl} 
-                          alt={bestMatchPartner.name} 
+                        <img
+                          src={bestMatchPartner.logoUrl}
+                          alt={bestMatchPartner.name}
                           className="absolute inset-0 w-full h-full object-cover transition-all duration-300"
                           style={{
                             clipPath: `inset(${100 - bestMatchProgress * 100}% 0% 0% 0%)`,
@@ -436,10 +436,10 @@ export const RestaurantModule: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3 text-white min-w-0">
             <div className="w-12 h-12 bg-white/5 text-white rounded-xl flex items-center justify-center shrink-0 border border-white/10 overflow-hidden">
-              <img 
-                src={RESTAURANT_PARTNERS.find(p => p.id === restaurantUser.id)?.logoUrl || 'assets/brand/rapidingo-logo.png'} 
-                alt="Logo" 
-                className="w-full h-full object-cover" 
+              <img
+                src={RESTAURANT_PARTNERS.find(p => p.id === restaurantUser.id)?.logoUrl || 'assets/brand/rapidingo-logo.png'}
+                alt="Logo"
+                className="w-full h-full object-cover"
               />
             </div>
             <div className="min-w-0">
@@ -457,8 +457,8 @@ export const RestaurantModule: React.FC = () => {
 
         {/* Tab Selection */}
         <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 text-center">
-          <button 
-            onClick={() => setActiveTab('INCOMING')} 
+          <button
+            onClick={() => setActiveTab('INCOMING')}
             className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'INCOMING' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
             ENTRANTES
@@ -468,8 +468,8 @@ export const RestaurantModule: React.FC = () => {
               </span>
             )}
           </button>
-          <button 
-            onClick={() => setActiveTab('PREPARING')} 
+          <button
+            onClick={() => setActiveTab('PREPARING')}
             className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'PREPARING' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
             PREPARANDO
@@ -479,8 +479,8 @@ export const RestaurantModule: React.FC = () => {
               </span>
             )}
           </button>
-          <button 
-            onClick={() => setActiveTab('READY')} 
+          <button
+            onClick={() => setActiveTab('READY')}
             className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest relative ${activeTab === 'READY' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
             LISTOS
@@ -490,8 +490,8 @@ export const RestaurantModule: React.FC = () => {
               </span>
             )}
           </button>
-          <button 
-            onClick={() => setActiveTab('HISTORY')} 
+          <button
+            onClick={() => setActiveTab('HISTORY')}
             className={`flex-1 text-[10px] font-black py-2 rounded-lg transition-all font-teko uppercase tracking-widest ${activeTab === 'HISTORY' ? 'bg-brand-orange text-white shadow-[0_0_10px_rgba(255,106,0,0.3)]' : 'text-gray-500'}`}
           >
             HISTORIAL
@@ -510,15 +510,15 @@ export const RestaurantModule: React.FC = () => {
               return (
                 <div key={order.id} className="bg-brand-black/90 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-4 relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-2 h-full bg-brand-orange"></div>
-                  
+
                   <div className="flex justify-between items-start pl-2">
                     <div>
                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[2px] font-teko italic">PEDIDO RECIBIDO</p>
                       <h4 className="text-xs font-black text-white font-montserrat uppercase tracking-tight mt-1">Repartidor: {order.deliveryName || 'Trinidad Repartidor'}</h4>
                     </div>
                     {order.deliveryPhone && (
-                      <a 
-                        href={`tel:${order.deliveryPhone}`} 
+                      <a
+                        href={`tel:${order.deliveryPhone}`}
                         className="p-2 bg-white/5 border border-white/10 text-brand-orange rounded-xl hover:bg-brand-orange/20 active:scale-95 transition-all"
                       >
                         <PhoneCall size={14} />
