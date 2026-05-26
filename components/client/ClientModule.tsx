@@ -637,7 +637,7 @@ const RestaurantOrderBuilder: React.FC<{
               onChange={(event) => setProductName(event.target.value.toUpperCase())}
               onKeyDown={(event) => event.key === 'Enter' && addCurrentItem()}
               placeholder="¿QUÉ VAS A PEDIR?"
-              className="min-w-0 rounded-2xl border-2 border-brand-orange/20 bg-white px-4 py-3.5 font-black text-sm text-brand-black placeholder:text-gray-500 outline-none focus:border-brand-orange focus:ring-4 focus:ring-brand-orange/10 font-montserrat"
+              className="min-w-0 rounded-2xl border-2 border-brand-orange/20 bg-white px-4 py-3.5 font-black text-sm text-brand-black placeholder:text-gray-500 outline-none focus:border-brand-orange focus:ring-4 focus:ring-brand-orange/10 font-montserrat high-contrast-input"
             />
             <div className="flex items-center rounded-2xl border-2 border-white/10 bg-brand-black/60 overflow-hidden">
               <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 text-gray-400 active:text-brand-orange">
@@ -734,6 +734,8 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   const [destinationPoint, setDestinationPoint] = useState<DeliveryPoint | null>(null);
   const [pickerInitialPoint, setPickerInitialPoint] = useState<DeliveryPoint>(DEFAULT_DELIVERY_POINT);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [showLocationConfirmModal, setShowLocationConfirmModal] = useState(false);
+  const [isLocationConfirmedByUser, setIsLocationConfirmedByUser] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const lastMenuPinchDistanceRef = useRef<number | null>(null);
@@ -772,6 +774,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
       setIsDestinationConfirmed(false);
       setDestinationPoint(null);
       setRestaurantItems([]);
+      setIsLocationConfirmedByUser(false);
     }
   }, [activeOrder]);
 
@@ -909,12 +912,83 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
     lastMenuPinchDistanceRef.current = null;
   };
 
+  const submitOrderWithLocation = async (clientLocation: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
+    if (!clientUser || !selectedType) return;
+    const normalizedOrderText = selectedType === OrderType.RESTAURANT
+      ? buildRestaurantOrderDescription(restaurantItems)
+      : orderText.trim().toUpperCase();
+    await createOrder({
+      id: Date.now().toString(),
+      clientId: clientUser.id,
+      type: selectedType,
+      description: normalizedOrderText,
+      location: {
+        lat: destination.lat,
+        lng: destination.lng,
+        address: 'Destino de entrega'
+      },
+      clientLocation,
+      destinationLocation: {
+        lat: destination.lat,
+        lng: destination.lng,
+        address: 'Destino de entrega'
+      },
+      status: OrderStatus.PENDING_PRICE,
+      createdAt: Date.now(),
+      chatHistory: [],
+      photos: []
+    });
+    setRestaurantItems([]);
+    setOrderText('');
+    setSelectedType(null);
+    setIsLocationConfirmedByUser(false);
+    setSendToOtherLocation(false);
+  };
+
+  const confirmLocationAsCurrent = () => {
+    setShowLocationConfirmModal(false);
+    setIsLocationConfirmedByUser(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const currentLoc = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setDestinationPoint({ ...currentLoc, address: 'Mi ubicacion actual' });
+        setIsDestinationConfirmed(true);
+        void submitOrderWithLocation(currentLoc, currentLoc);
+      }, (error) => {
+        console.warn("GPS error, using mock:", error);
+        const mockLoc = { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng };
+        setDestinationPoint({ ...mockLoc, address: 'Mi ubicacion actual' });
+        setIsDestinationConfirmed(true);
+        void submitOrderWithLocation(mockLoc, mockLoc);
+      });
+    } else {
+      const mockLoc = { lat: DEFAULT_DELIVERY_POINT.lat, lng: DEFAULT_DELIVERY_POINT.lng };
+      setDestinationPoint({ ...mockLoc, address: 'Mi ubicacion actual' });
+      setIsDestinationConfirmed(true);
+      void submitOrderWithLocation(mockLoc, mockLoc);
+    }
+  };
+
+  const confirmLocationAsAlternative = () => {
+    setShowLocationConfirmModal(false);
+    setIsLocationConfirmedByUser(true);
+    setSendToOtherLocation(true);
+    setIsDestinationConfirmed(false);
+    openDestinationPicker(true);
+  };
+
   const handleOrderSubmit = () => {
     if (!clientUser || !selectedType) return;
     const normalizedOrderText = selectedType === OrderType.RESTAURANT
       ? buildRestaurantOrderDescription(restaurantItems)
       : orderText.trim().toUpperCase();
     if (!normalizedOrderText.trim()) return;
+
+    if (!isLocationConfirmedByUser) {
+      setShowLocationConfirmModal(true);
+      return;
+    }
+
     if (!isDestinationConfirmed || !destinationPoint) {
       openDestinationPicker(sendToOtherLocation);
       return;
@@ -943,9 +1017,12 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
         photos: []
       });
       setRestaurantItems([]);
+      setOrderText('');
+      setSelectedType(null);
+      setIsLocationConfirmedByUser(false);
+      setSendToOtherLocation(false);
     };
 
-    // Attempt to get real GPS location
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition((position) => {
         void submitOrderRecord({ lat: position.coords.latitude, lng: position.coords.longitude });
@@ -1373,7 +1450,7 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                   />
                 ) : (
                   <textarea
-                    className="w-full h-40 p-5 border-2 border-brand-orange/20 rounded-[24px] bg-white text-brand-black text-lg font-black uppercase shadow-2xl focus:ring-4 focus:ring-brand-orange/10 focus:border-brand-orange outline-none transition-all placeholder:text-gray-500 font-montserrat"
+                    className="w-full h-40 p-5 border-2 border-brand-orange/20 rounded-[24px] bg-white text-brand-black text-lg font-black uppercase shadow-2xl focus:ring-4 focus:ring-brand-orange/10 focus:border-brand-orange outline-none transition-all placeholder:text-gray-500 font-montserrat high-contrast-input"
                     placeholder={orderTextPlaceholder}
                     value={orderText}
                     onChange={(e) => setOrderText(e.target.value)}
@@ -1386,19 +1463,22 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
 
                 <div className="bg-brand-black/80 rounded-[22px] border border-brand-orange/20 shadow-2xl p-5 space-y-4 relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-1 h-full bg-brand-orange group-active:w-2 transition-all"></div>
-                  <label className="flex items-start gap-3 cursor-pointer">
+                  <label className={`flex items-start gap-3 ${!isLocationConfirmedByUser ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"
                       checked={sendToOtherLocation}
+                      disabled={!isLocationConfirmedByUser}
                       onChange={(e) => handleOtherLocationToggle(e.target.checked)}
                       className="mt-1 h-6 w-6 rounded-lg accent-brand-orange transition-transform active:scale-90 ring-2 ring-white/10"
                     />
                     <span>
                       <span className="block text-base font-black text-white font-montserrat uppercase tracking-tight">Enviar a otra ubicación</span>
                       <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-widest font-teko italic leading-tight mt-1">
-                        {destinationPoint
-                          ? "Punto marcado en el mapa"
-                          : "Se enviará a tu posición actual"}
+                        {!isLocationConfirmedByUser
+                          ? "Confirma tu ubicación al pedir"
+                          : destinationPoint
+                            ? "Punto marcado en el mapa"
+                            : "Se enviará a tu posición actual"}
                       </span>
                     </span>
                   </label>
@@ -1589,6 +1669,40 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
           <span className="text-[10px] font-black uppercase tracking-widest font-teko italic">Perfil</span>
         </button>
       </div>
+
+      {showLocationConfirmModal && (
+        <div className="absolute inset-0 z-[100] bg-brand-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-brand-black rounded-[2rem] border border-brand-orange/30 p-6 text-center space-y-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-orange to-brand-yellow"></div>
+            
+            <div className="h-16 w-16 mx-auto rounded-full bg-brand-orange/10 flex items-center justify-center text-brand-orange shadow-lg border border-brand-orange/20 animate-pulse">
+              <MapPin size={32} />
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-brand-yellow uppercase tracking-[3px] font-teko italic">Confirmación de entrega</p>
+              <h3 className="text-xl font-black text-white font-montserrat uppercase leading-tight">
+                ¿El pedido llegará a tu ubicación actual?
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={confirmLocationAsCurrent}
+                className="bg-brand-orange text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] font-teko italic shadow-[0_0_20px_rgba(255,106,0,0.3)] active:scale-95 transition-all"
+              >
+                SÍ
+              </button>
+              <button
+                onClick={confirmLocationAsAlternative}
+                className="bg-white/5 text-gray-400 py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] font-teko italic border border-white/5 active:bg-white/10 transition-all"
+              >
+                NO, OTRA UBICACIÓN
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

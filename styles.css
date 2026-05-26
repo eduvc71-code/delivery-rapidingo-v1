@@ -11,6 +11,7 @@
   --animate-fade-in: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-scale-up: scale-up 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   --animate-bounce-subtle: bounce-subtle 2s infinite ease-in-out;
+  --animate-placeholder-flash: placeholder-flash 0.5s ease-in-out 2;
 
   @keyframes fade-in {
     from { opacity: 0; backdrop-filter: blur(0px); }
@@ -24,6 +25,10 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
   }
+  @keyframes placeholder-flash {
+    0%, 100% { opacity: 1; color: #111111; }
+    50% { opacity: 0.4; color: #FF6A00; }
+  }
 }
 
 .hexagon-pattern {
@@ -35,5 +40,15 @@
   background: linear-gradient(to right, #FFC107, #FF6A00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.high-contrast-input::placeholder {
+  color: #111111 !important;
+  font-weight: 900 !important;
+  opacity: 1 !important;
+}
+
+.high-contrast-input {
+  animation: placeholder-flash 0.5s ease-in-out 2;
 }
 

@@ -277,14 +277,14 @@ private fun rapidingoTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White,
     focusedBorderColor = ApkBrandOrange,
-    unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+    unfocusedBorderColor = Color.White.copy(alpha = 0.25f),
     focusedLabelColor = ApkBrandOrange,
-    unfocusedLabelColor = ApkBrandMuted,
+    unfocusedLabelColor = Color.White.copy(alpha = 0.8f),
     cursorColor = ApkBrandOrange,
     focusedContainerColor = ApkBrandField,
     unfocusedContainerColor = ApkBrandField,
-    focusedPlaceholderColor = ApkBrandMuted,
-    unfocusedPlaceholderColor = ApkBrandMuted
+    focusedPlaceholderColor = Color.White.copy(alpha = 0.6f),
+    unfocusedPlaceholderColor = Color.White.copy(alpha = 0.5f)
 )
 
 class MainActivity : ComponentActivity() {
@@ -750,6 +750,17 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
     var destinationConfirmed by remember { mutableStateOf(false) }
     var selectedDestination by remember { mutableStateOf<MyLatLng?>(null) }
     var showDestinationPicker by remember { mutableStateOf(false) }
+    var isLocationConfirmedByUser by remember { mutableStateOf(false) }
+    var showLocationConfirmDialog by remember { mutableStateOf(false) }
+    var flashActive by remember { mutableStateOf(true) }
+    val flashColor by androidx.compose.animation.animateColorAsState(
+        targetValue = if (flashActive) ApkBrandOrange else Color.Transparent,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 1000)
+    )
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1000)
+        flashActive = false
+    }
     val availableDeliveries = viewModel.availableDeliveriesCount
     val clientName = viewModel.clientUser?.name ?: ""
     val context = LocalContext.current
@@ -915,57 +926,73 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                         )
                     } else {
                         Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 16.dp)) {
-                            OutlinedTextField(
-                                value = orderText, 
-                                onValueChange = { orderText = it }, 
-                                label = { Text("Detalle del pedido y referencia") },
-                                placeholder = { Text("Escribe aquí lo que necesitas") },
-                                modifier = Modifier.fillMaxWidth().height(140.dp),
-                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                                visualTransformation = UppercaseVisualTransformation,
-                                shape = RoundedCornerShape(22.dp),
-                                textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color.White),
-                                colors = rapidingoTextFieldColors()
-                            )
+                             OutlinedTextField(
+                                 value = orderText, 
+                                 onValueChange = { orderText = it }, 
+                                 label = { Text("Detalle del pedido y referencia") },
+                                 placeholder = { Text("Escribe aquí lo que necesitas") },
+                                 modifier = Modifier
+                                     .fillMaxWidth()
+                                     .height(140.dp)
+                                     .border(
+                                         width = if (flashActive) 2.dp else 0.dp,
+                                         color = flashColor,
+                                         shape = RoundedCornerShape(22.dp)
+                                     ),
+                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                                 visualTransformation = UppercaseVisualTransformation,
+                                 shape = RoundedCornerShape(22.dp),
+                                 textStyle = TextStyle(fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color.White),
+                                 colors = rapidingoTextFieldColors()
+                             )
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                                colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                                border = BorderStroke(1.dp, ApkBrandBorder),
-                                shape = RoundedCornerShape(22.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(
-                                            checked = sendToOtherLocation,
-                                            onCheckedChange = { checked ->
-                                                sendToOtherLocation = checked
-                                                if (checked) {
-                                                    showDestinationPicker = true
-                                                } else {
-                                                    selectedDestination = null
-                                                }
-                                            }
-                                        )
-                                        Column {
-                                            Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
-                                            val locDesc = if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
-                                            Text(locDesc, color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
-                                }
-                            }
+                             Card(
+                                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                                 colors = CardDefaults.cardColors(containerColor = ApkBrandPanel),
+                                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                                 border = BorderStroke(1.dp, ApkBrandBorder),
+                                 shape = RoundedCornerShape(22.dp)
+                             ) {
+                                 Column(modifier = Modifier.padding(12.dp)) {
+                                     Row(
+                                         verticalAlignment = Alignment.CenterVertically,
+                                         modifier = Modifier.graphicsLayer(alpha = if (isLocationConfirmedByUser) 1.0f else 0.4f)
+                                     ) {
+                                         Checkbox(
+                                             checked = sendToOtherLocation,
+                                             enabled = isLocationConfirmedByUser,
+                                             onCheckedChange = { checked ->
+                                                 sendToOtherLocation = checked
+                                                 if (checked) {
+                                                     showDestinationPicker = true
+                                                 } else {
+                                                     selectedDestination = null
+                                                 }
+                                             }
+                                         )
+                                         Column {
+                                             Text("Enviar a otra ubicación", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
+                                             val locDesc = if (!isLocationConfirmedByUser) "Confirma tu ubicación al pedir" else if (selectedDestination != null) "Punto marcado en el mapa" else "Se enviará a tu posición actual"
+                                             Text(locDesc, color = ApkBrandMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                         }
+                                     }
+                                 }
+                             }
 
                             Button(
                                 onClick = { 
-                                    val category = selectedCategory
-                                    if(category != null && orderText.isNotBlank()) {
-                                        viewModel.createOrder(category, orderText.trim().uppercase(), selectedDestination ?: defaultDestination)
-                                        selectedCategory = null
-                                        sendToOtherLocation = false
-                                        selectedDestination = null
-                                        orderText = ""
+                                    if (!isLocationConfirmedByUser) {
+                                        showLocationConfirmDialog = true
+                                    } else {
+                                        val category = selectedCategory
+                                        if (category != null && orderText.isNotBlank()) {
+                                            viewModel.createOrder(category, orderText.trim().uppercase(), selectedDestination ?: defaultDestination)
+                                            selectedCategory = null
+                                            sendToOtherLocation = false
+                                            selectedDestination = null
+                                            orderText = ""
+                                            isLocationConfirmedByUser = false
+                                        }
                                     }
                                 }, 
                                 modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 60.dp).height(64.dp),
@@ -987,6 +1014,67 @@ fun ClientModule(viewModel: MainViewModel, showChat: MutableState<Boolean>, onOp
                 OSMOrderTracking(viewModel, onOpenChat = { showChat.value = true })
             }
         }
+    }
+
+    if (showLocationConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationConfirmDialog = false },
+            title = {
+                Text(
+                    "CONFIRMACIÓN DE ENTREGA",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
+            },
+            text = {
+                Text(
+                    "¿EL PEDIDO LLEGARÁ A TU UBICACIÓN ACTUAL?",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLocationConfirmDialog = false
+                        isLocationConfirmedByUser = true
+                        val category = selectedCategory
+                        if (category != null && orderText.isNotBlank()) {
+                            viewModel.createOrder(
+                                category,
+                                orderText.trim().uppercase(),
+                                viewModel.currentUserLocation ?: viewModel.clientUser?.location ?: MyLatLng(-14.8336, -64.9000)
+                            )
+                            selectedCategory = null
+                            sendToOtherLocation = false
+                            selectedDestination = null
+                            orderText = ""
+                            isLocationConfirmedByUser = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ApkBrandOrange)
+                ) {
+                    Text("SÍ, AQUÍ MISMO", fontWeight = FontWeight.Black)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLocationConfirmDialog = false
+                        isLocationConfirmedByUser = true
+                        sendToOtherLocation = true
+                        selectedDestination = null
+                        showDestinationPicker = true
+                    }
+                ) {
+                    Text("NO, OTRA UBICACIÓN", fontWeight = FontWeight.Bold, color = ApkBrandOrange)
+                }
+            },
+            containerColor = ApkBrandPanel,
+            shape = RoundedCornerShape(22.dp)
+        )
     }
 
     if (showOrderDialog && currentRestaurantForDialog != null) {
