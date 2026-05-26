@@ -1,0 +1,25 @@
+{
+  "short_name": "Rapidingo Administracion/Operadora",
+  "name": "Rapidingo Administracion/Operadora",
+  "icons": [
+    {
+      "src": "icons/client-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/client-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FF6A00",
+  "background_color": "#111111"
+}
