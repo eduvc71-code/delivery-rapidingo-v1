@@ -356,7 +356,9 @@ const DestinationPickerModal: React.FC<{
 
     const map = new maplibregl.Map({
       container: mapRef.current,
-      style: `https://api.maptiler.com/maps/${isSatellite ? 'hybrid' : 'streets-v2'}/style.json?key=${MAPTILER_KEY}`,
+      style: isSatellite 
+        ? `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`
+        : 'https://tiles.openfreemap.org/styles/bright',
       center: [startLng, startLat],
       zoom: 17,
       pitch: 58,

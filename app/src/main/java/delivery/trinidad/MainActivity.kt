@@ -1840,7 +1840,7 @@ fun MapLibrePickerView(
     val mapTilerKey = "3cP8iNk1Zj2ghLvTv5eB"
     val styleUrl = if (isSatellite) 
         "https://api.maptiler.com/maps/hybrid/style.json?key=$mapTilerKey"
-        else "https://api.maptiler.com/maps/streets-v2/style.json?key=$mapTilerKey"
+        else "https://tiles.openfreemap.org/styles/bright"
 
     LaunchedEffect(isSatellite) {
         mapLibreMap?.setStyle(styleUrl)
