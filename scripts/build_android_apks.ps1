@@ -16,7 +16,7 @@ if (-not (Test-Path $gradlew)) {
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
-& $gradlew ":app:assembleCliente$BuildType" ":app:assembleDelivery$BuildType"
+& $gradlew ":app:assembleCliente$BuildType" ":app:assembleDelivery$BuildType" ":app:assembleClienteV2$BuildType" ":app:assembleDeliveryV2$BuildType"
 if ($LASTEXITCODE -ne 0) {
     throw "Gradle termino con codigo $LASTEXITCODE"
 }
@@ -29,6 +29,14 @@ $outputs = @(
     @{
         Role = "delivery"
         Source = Join-Path $root "app\build\outputs\apk\delivery\$buildTypeLower\app-delivery-$buildTypeLower.apk"
+    },
+    @{
+        Role = "cliente-v2"
+        Source = Join-Path $root "app\build\outputs\apk\clienteV2\$buildTypeLower\app-clienteV2-$buildTypeLower.apk"
+    },
+    @{
+        Role = "delivery-v2"
+        Source = Join-Path $root "app\build\outputs\apk\deliveryV2\$buildTypeLower\app-deliveryV2-$buildTypeLower.apk"
     }
 )
 

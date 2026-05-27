@@ -21,7 +21,7 @@ const apps = [
   {
     folder: 'cliente',
     role: 'client',
-    name: 'Rapidingo Cliente',
+    name: 'Beep Cliente',
     theme: '#FFC107',
     manifestSource: 'manifest-client.json',
     icon192: 'client-192.png',
@@ -30,7 +30,7 @@ const apps = [
   {
     folder: 'delivery',
     role: 'delivery',
-    name: 'Rapidingo Delivery',
+    name: 'Beep Delivery',
     theme: '#FFC107',
     manifestSource: 'manifest-delivery.json',
     icon192: 'delivery-192.png',
@@ -39,7 +39,7 @@ const apps = [
   {
     folder: 'restaurante',
     role: 'restaurant',
-    name: 'Rapidingo Restaurante',
+    name: 'Beep Restaurante',
     theme: '#FFC107',
     manifestSource: 'manifest-client.json',
     icon192: 'client-192.png',
@@ -48,7 +48,7 @@ const apps = [
   {
     folder: 'admin',
     role: 'admin',
-    name: 'Rapidingo Administracion/Operadora',
+    name: 'Beep Administracion/Operadora',
     theme: '#FF6A00',
     manifestSource: 'manifest-client.json',
     icon192: 'client-192.png',

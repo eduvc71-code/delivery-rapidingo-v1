@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    id("com.google.gms.google-services")
 }
 
 val localProperties = Properties().apply {
@@ -47,6 +46,7 @@ android {
             resValue("string", "app_name", "Cliente")
             buildConfigField("String", "APP_ROLE", "\"CLIENT\"")
             buildConfigField("String", "APP_DISPLAY_NAME", "\"Rapidingo Cliente\"")
+            buildConfigField("Boolean", "IS_V2", "false")
         }
         create("delivery") {
             dimension = "role"
@@ -54,6 +54,23 @@ android {
             resValue("string", "app_name", "Delivery")
             buildConfigField("String", "APP_ROLE", "\"DELIVERY\"")
             buildConfigField("String", "APP_DISPLAY_NAME", "\"Rapidingo Delivery\"")
+            buildConfigField("Boolean", "IS_V2", "false")
+        }
+        create("clienteV2") {
+            dimension = "role"
+            applicationId = "delivery.a2026.trinidad.cliente.v2"
+            resValue("string", "app_name", "Beep Cliente")
+            buildConfigField("String", "APP_ROLE", "\"CLIENT\"")
+            buildConfigField("String", "APP_DISPLAY_NAME", "\"Beep Cliente\"")
+            buildConfigField("Boolean", "IS_V2", "true")
+        }
+        create("deliveryV2") {
+            dimension = "role"
+            applicationId = "delivery.a2026.trinidad.delivery.v2"
+            resValue("string", "app_name", "Beep Delivery")
+            buildConfigField("String", "APP_ROLE", "\"DELIVERY\"")
+            buildConfigField("String", "APP_DISPLAY_NAME", "\"Beep Delivery\"")
+            buildConfigField("Boolean", "IS_V2", "true")
         }
     }
 

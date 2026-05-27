@@ -59,6 +59,11 @@ type SupabaseDeliveryReportRow = {
   created_at: number;
 };
 
+let cachedDispatchMode: { value: string; fetchedAt: number } | null = null;
+const DISPATCH_MODE_CACHE_MS = 60_000;
+let cachedOnlineDeliveryUsers: { value: User[]; fetchedAt: number } | null = null;
+const ONLINE_DELIVERY_USERS_CACHE_MS = 10_000;
+
 function assertConfigured() {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY para la PWA.');
@@ -296,6 +301,16 @@ export const SupabasePwaApi = {
     return rows.map(rowToUser);
   },
 
+  async getOnlineDeliveryUsers(): Promise<User[]> {
+    if (cachedOnlineDeliveryUsers && Date.now() - cachedOnlineDeliveryUsers.fetchedAt < ONLINE_DELIVERY_USERS_CACHE_MS) {
+      return cachedOnlineDeliveryUsers.value;
+    }
+    const rows = await request<SupabaseUserRow[]>('/rest/v1/users?role=eq.DELIVERY&online=eq.true&order=name.asc');
+    const users = rows.map(rowToUser).filter((user) => user.location && (user.location.lat !== 0 || user.location.lng !== 0));
+    cachedOnlineDeliveryUsers = { value: users, fetchedAt: Date.now() };
+    return users;
+  },
+
   async getUser(id: string): Promise<User | null> {
     const rows = await request<SupabaseUserRow[]>(`/rest/v1/users?id=eq.${encodeURIComponent(id)}&limit=1`);
     return rows[0] ? rowToUser(rows[0]) : null;
@@ -310,6 +325,53 @@ export const SupabasePwaApi = {
 
   async getOrders(): Promise<Order[]> {
     const rows = await request<SupabaseOrderRow[]>('/rest/v1/orders?order=created_at.desc');
+    return rows.map(rowToOrder);
+  },
+
+  async getActiveDispatchOrders(limit = 300): Promise<Order[]> {
+    const rows = await request<SupabaseOrderRow[]>(
+      `/rest/v1/orders?status=not.in.(${OrderStatus.COMPLETED},${OrderStatus.CANCELLED})&order=created_at.desc&limit=${limit}`
+    );
+    return rows.map(rowToOrder);
+  },
+
+  async getActiveClientOrder(clientId: string): Promise<Order | null> {
+    const rows = await request<SupabaseOrderRow[]>(
+      `/rest/v1/orders?client_id=eq.${encodeURIComponent(clientId)}&status=not.in.(${OrderStatus.COMPLETED},${OrderStatus.CANCELLED})&order=created_at.desc&limit=1`
+    );
+    return rows[0] ? rowToOrder(rows[0]) : null;
+  },
+
+  async getActiveDeliveryOrder(deliveryId: string): Promise<Order | null> {
+    const rows = await request<SupabaseOrderRow[]>(
+      `/rest/v1/orders?delivery_id=eq.${encodeURIComponent(deliveryId)}&status=not.in.(${OrderStatus.COMPLETED},${OrderStatus.CANCELLED})&order=created_at.desc&limit=1`
+    );
+    return rows[0] ? rowToOrder(rows[0]) : null;
+  },
+
+  async getDeliveryQueue(deliveryId: string, dispatchMode: string, limit = 10): Promise<Order[]> {
+    const targetFilter = dispatchMode === 'OPERATOR'
+      ? `target_delivery_id=eq.${encodeURIComponent(deliveryId)}`
+      : `or=(target_delivery_id.eq.${encodeURIComponent(deliveryId)},target_delivery_id.is.null)`;
+    const rejectedFilter = `rejected_by=not.cs.${encodeURIComponent(JSON.stringify([deliveryId]))}`;
+    try {
+      const rows = await request<SupabaseOrderRow[]>(
+        `/rest/v1/orders?status=eq.${OrderStatus.PENDING_PRICE}&${targetFilter}&${rejectedFilter}&order=created_at.asc&limit=${limit}`
+      );
+      return rows.map(rowToOrder);
+    } catch (error) {
+      console.warn('No se pudo filtrar rejected_by en Supabase. Filtrando cola localmente:', error);
+      const rows = await request<SupabaseOrderRow[]>(
+        `/rest/v1/orders?status=eq.${OrderStatus.PENDING_PRICE}&${targetFilter}&order=created_at.asc&limit=${limit * 3}`
+      );
+      return rows.map(rowToOrder).filter((order) => !order.rejectedBy?.includes(deliveryId)).slice(0, limit);
+    }
+  },
+
+  async getActiveOrdersPage(limit = 100, offset = 0): Promise<Order[]> {
+    const rows = await request<SupabaseOrderRow[]>(
+      `/rest/v1/orders?status=not.in.(${OrderStatus.COMPLETED},${OrderStatus.CANCELLED})&order=created_at.asc&limit=${limit}&offset=${offset}`
+    );
     return rows.map(rowToOrder);
   },
 
@@ -398,11 +460,20 @@ export const SupabasePwaApi = {
   async getDispatchMode(): Promise<string> {
     try {
       const rows = await request<{ key: string; value: string }[]>('/rest/v1/settings?key=eq.dispatch_mode&limit=1');
-      return rows[0]?.value || 'AUTOMATIC';
+      const value = rows[0]?.value || 'AUTOMATIC';
+      cachedDispatchMode = { value, fetchedAt: Date.now() };
+      return value;
     } catch (error) {
       console.warn('No se pudo leer settings de Supabase. Usando local:', error);
       return localStorage.getItem('rapidEnvios_fallback_dispatch_mode') || 'AUTOMATIC';
     }
+  },
+
+  async getDispatchModeCached(): Promise<string> {
+    if (cachedDispatchMode && Date.now() - cachedDispatchMode.fetchedAt < DISPATCH_MODE_CACHE_MS) {
+      return cachedDispatchMode.value;
+    }
+    return this.getDispatchMode();
   },
 
   async setDispatchMode(mode: string): Promise<void> {
@@ -411,6 +482,7 @@ export const SupabasePwaApi = {
         method: 'PATCH',
         body: JSON.stringify({ value: mode }),
       });
+      cachedDispatchMode = { value: mode, fetchedAt: Date.now() };
     } catch (error) {
       console.error('No se pudo guardar settings en Supabase:', error);
       localStorage.setItem('rapidEnvios_fallback_dispatch_mode', mode);

@@ -1,5 +1,5 @@
 -- Rapidingo Supabase schema.
--- Run this in Supabase SQL Editor before switching Android from Firebase.
+-- Run this in Supabase SQL Editor before enabling the Supabase-backed apps.
 -- This keeps active-service data separate from lightweight delivery earnings.
 
 create extension if not exists pgcrypto;
@@ -105,6 +105,37 @@ create index if not exists orders_client_idx on public.orders(client_id, status,
 create index if not exists orders_delivery_idx on public.orders(delivery_id, status, created_at desc);
 create index if not exists orders_target_delivery_idx on public.orders(target_delivery_id, status, created_at desc);
 create index if not exists delivery_reports_delivery_idx on public.delivery_reports(delivery_id, completed_at desc);
+
+-- Indices para consultas filtradas por rol y pruebas de carga.
+create index if not exists orders_client_active_idx
+on public.orders (client_id, created_at desc)
+where status not in ('COMPLETED', 'CANCELLED');
+
+create index if not exists orders_delivery_active_idx
+on public.orders (delivery_id, created_at desc)
+where status not in ('COMPLETED', 'CANCELLED');
+
+create index if not exists orders_pending_price_idx
+on public.orders (target_delivery_id, created_at asc)
+where status = 'PENDING_PRICE';
+
+create index if not exists orders_active_created_idx
+on public.orders (created_at asc)
+where status not in ('COMPLETED', 'CANCELLED');
+
+create index if not exists users_delivery_online_idx
+on public.users (online, name)
+where role = 'DELIVERY' and online = true;
+
+create index if not exists orders_rejected_by_gin_idx
+on public.orders using gin (rejected_by);
+
+create index if not exists orders_status_created_idx
+on public.orders (status, created_at asc);
+
+create index if not exists orders_target_pending_created_idx
+on public.orders (target_delivery_id, status, created_at asc)
+where status = 'PENDING_PRICE';
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -225,4 +256,3 @@ ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
   phone = EXCLUDED.phone,
   location = EXCLUDED.location;
-

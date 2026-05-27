@@ -218,7 +218,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
   }, [appMode, deliveryUser?.id]);
 
-  // Supabase es la base comun para PWA y APK. Firebase queda solo para Gmail.
+  // Supabase es la base comun para PWA y APK.
   useEffect(() => {
     const user = appMode === UserRole.DELIVERY 
       ? deliveryUser 
@@ -233,58 +233,64 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const loadOrders = async () => {
       try {
-        const [orders, deliveryUsers, mode] = await Promise.all([
-          SupabasePwaApi.getOrders(),
-          SupabasePwaApi.getDeliveryUsers(),
-          SupabasePwaApi.getDispatchMode(),
-        ]);
+        const mode = await SupabasePwaApi.getDispatchModeCached();
         if (cancelled) return;
 
-        setAllOrders(orders);
         setDispatchMode(mode as 'AUTOMATIC' | 'OPERATOR');
 
         if (appMode === UserRole.ADMIN || appMode === UserRole.OPERATOR) {
+          const [orders, deliveryUsers] = await Promise.all([
+            SupabasePwaApi.getActiveOrdersPage(100, 0),
+            SupabasePwaApi.getOnlineDeliveryUsers(),
+          ]);
+          if (cancelled) return;
+          setAllOrders(orders);
           setAvailableDeliveries(deliveryUsers);
           setActiveOrder(null);
           setAssignedDelivery(null);
           return;
         }
 
-        const onlineDeliveries = getAvailableDeliveryCandidates(
-          user.location || { lat: 0, lng: 0 },
-          deliveryUsers,
-          orders
-        );
-        setAvailableDeliveries(onlineDeliveries);
-
         if (appMode === UserRole.RESTAURANT) {
+          const orders = await SupabasePwaApi.getActiveOrdersPage(200, 0);
+          if (cancelled) return;
+          setAllOrders(orders);
+          setAvailableDeliveries([]);
           setActiveOrder(null);
           setAssignedDelivery(null);
-        } else {
-          const nextOrder = appMode === UserRole.CLIENT
-            ? orders.find((order) =>
-                order.clientId === user.id &&
-                order.status !== OrderStatus.COMPLETED &&
-                order.status !== OrderStatus.CANCELLED
-              )
-            : orders.find((order) =>
-                order.deliveryId === user.id &&
-                order.status !== OrderStatus.COMPLETED &&
-                order.status !== OrderStatus.CANCELLED
-              ) || orders.find((order) =>
-                order.status === OrderStatus.PENDING_PRICE &&
-                order.targetDeliveryId === user.id &&
-                !order.rejectedBy?.includes(user.id)
-              );
+          return;
+        }
 
+        if (appMode === UserRole.CLIENT) {
+          const [nextOrder, deliveryUsers] = await Promise.all([
+            SupabasePwaApi.getActiveClientOrder(user.id),
+            SupabasePwaApi.getOnlineDeliveryUsers(),
+          ]);
+          if (cancelled) return;
+          const visibleOrders = nextOrder ? [nextOrder] : [];
+          setAllOrders(visibleOrders);
           setActiveOrder(nextOrder || null);
+          setAvailableDeliveries(deliveryUsers);
+          const deliveryId = nextOrder?.deliveryId || nextOrder?.targetDeliveryId;
+          setAssignedDelivery(deliveryId ? deliveryUsers.find((delivery) => delivery.id === deliveryId) || null : null);
+          return;
+        }
 
-          if (nextOrder) {
-            const deliveryId = nextOrder.deliveryId || nextOrder.targetDeliveryId;
-            setAssignedDelivery(onlineDeliveries.find((delivery) => delivery.id === deliveryId) || null);
-          } else {
-            setAssignedDelivery(onlineDeliveries[0] || null);
-          }
+        if (appMode === UserRole.DELIVERY) {
+          const [assignedOrder, queueOrders] = await Promise.all([
+            SupabasePwaApi.getActiveDeliveryOrder(user.id),
+            SupabasePwaApi.getDeliveryQueue(user.id, mode),
+          ]);
+          if (cancelled) return;
+          const nextOrder = assignedOrder || queueOrders[0] || null;
+          const visibleOrders = [
+            ...(assignedOrder ? [assignedOrder] : []),
+            ...queueOrders.filter((order) => order.id !== assignedOrder?.id),
+          ];
+          setAllOrders(visibleOrders);
+          setActiveOrder(nextOrder);
+          setAvailableDeliveries([]);
+          setAssignedDelivery(null);
         }
       } catch (error) {
         console.error('Error escuchando pedidos en Supabase:', error);
@@ -292,11 +298,65 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     loadOrders();
-    const intervalId = window.setInterval(loadOrders, 2500);
+    const intervalId = window.setInterval(loadOrders, 30000);
+    let refreshTimeoutId: number | null = null;
+
+    const scheduleRealtimeRefresh = () => {
+      if (cancelled) return;
+      if (refreshTimeoutId !== null) {
+        window.clearTimeout(refreshTimeoutId);
+      }
+      refreshTimeoutId = window.setTimeout(loadOrders, 250);
+    };
+
+    const channel = supabase.channel(`rapidingo-${appMode}-${user.id}-${Date.now()}`);
+    const addOrderSubscription = (filter?: string) => {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          ...(filter ? { filter } : {}),
+        },
+        scheduleRealtimeRefresh
+      );
+    };
+
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'settings',
+        filter: 'key=eq.dispatch_mode',
+      },
+      scheduleRealtimeRefresh
+    );
+
+    if (appMode === UserRole.CLIENT) {
+      addOrderSubscription(`client_id=eq.${user.id}`);
+    } else if (appMode === UserRole.DELIVERY) {
+      addOrderSubscription(`delivery_id=eq.${user.id}`);
+      addOrderSubscription(`target_delivery_id=eq.${user.id}`);
+      addOrderSubscription(`status=eq.${OrderStatus.PENDING_PRICE}`);
+    } else {
+      addOrderSubscription();
+    }
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        scheduleRealtimeRefresh();
+      }
+    });
 
     return () => {
       cancelled = true;
+      if (refreshTimeoutId !== null) {
+        window.clearTimeout(refreshTimeoutId);
+      }
       window.clearInterval(intervalId);
+      supabase.removeChannel(channel);
     };
   }, [appMode, clientUser?.id, deliveryUser?.id, restaurantUser?.id, adminUser?.id]);
 
@@ -510,8 +570,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (mode === 'AUTOMATIC') {
         const [deliveryUsers, orders] = await Promise.all([
-          SupabasePwaApi.getDeliveryUsers(),
-          SupabasePwaApi.getOrders(),
+          SupabasePwaApi.getOnlineDeliveryUsers(),
+          SupabasePwaApi.getActiveDispatchOrders(),
         ]);
         const destination = order.destinationLocation || order.location;
         const onlineDeliveries = getAvailableDeliveryCandidates(destination, deliveryUsers, orders);
@@ -570,8 +630,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         activeOrder.status === OrderStatus.PENDING_PRICE
       ) {
         const [deliveryUsers, orders] = await Promise.all([
-          SupabasePwaApi.getDeliveryUsers(),
-          SupabasePwaApi.getOrders(),
+          SupabasePwaApi.getOnlineDeliveryUsers(),
+          SupabasePwaApi.getActiveDispatchOrders(),
         ]);
         const rejectedBy = Array.from(new Set([...(activeOrder.rejectedBy || []), deliveryUser.id]));
         const destination = activeOrder.destinationLocation || activeOrder.location;

@@ -40,7 +40,7 @@ Android and PWA now use Supabase for shared service data:
 - chat
 - order status
 
-Firebase remains only for Gmail sign-in. The PWA reads Supabase settings from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, or from the same local `SUPABASE_URL` / `SUPABASE_ANON_KEY` values used by Android in `local.properties`.
+Gmail sign-in is handled through Google/Supabase Auth. The PWA reads Supabase settings from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`, or from the same local `SUPABASE_URL` / `SUPABASE_ANON_KEY` values used by Android in `local.properties`.
 
 ## 4. Security Note
 

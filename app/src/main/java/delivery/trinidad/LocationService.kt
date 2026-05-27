@@ -99,7 +99,7 @@ class LocationService : Service() {
                     return@launch
                 }
 
-                val order = SupabaseApi.getOrders().find { it.id == activeOrderId }
+                val order = SupabaseApi.getOrder(activeOrderId)
                 if (order == null || order.status == OrderStatus.COMPLETED || order.status == OrderStatus.CANCELLED) {
                     prefs.edit { remove("active_order_id") }
                     lastChatSize = 0

@@ -93,6 +93,7 @@ import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
 import delivery.trinidad.ui.theme.DeliveryRapidingoTheme
+import delivery.trinidad.ui.theme.DeliveryRapidingoV2Theme
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
@@ -298,15 +299,28 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = packageName
         enableEdgeToEdge()
         setContent {
-            DeliveryRapidingoTheme {
-                val viewModel: MainViewModel = viewModel()
-                mainViewModel = viewModel
-                LaunchedEffect(Unit) {
-                    viewModel.isAppInForeground = true
+            if (BuildConfig.IS_V2) {
+                DeliveryRapidingoV2Theme {
+                    val viewModel: MainViewModel = viewModel()
+                    mainViewModel = viewModel
+                    LaunchedEffect(Unit) {
+                        viewModel.isAppInForeground = true
+                    }
+                    LocationHandler(viewModel)
+                    GPSCheck(LocalContext.current)
+                    MainNavigationV2(viewModel)
                 }
-                LocationHandler(viewModel)
-                GPSCheck(LocalContext.current)
-                MainNavigation(viewModel)
+            } else {
+                DeliveryRapidingoTheme {
+                    val viewModel: MainViewModel = viewModel()
+                    mainViewModel = viewModel
+                    LaunchedEffect(Unit) {
+                        viewModel.isAppInForeground = true
+                    }
+                    LocationHandler(viewModel)
+                    GPSCheck(LocalContext.current)
+                    MainNavigation(viewModel)
+                }
             }
         }
     }

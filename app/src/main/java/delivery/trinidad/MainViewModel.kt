@@ -418,7 +418,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         deliveryStatusJob = viewModelScope.launch {
             while (true) {
                 runCatching {
-                    SupabaseApi.getDeliveryUsers()
+                    SupabaseApi.getOnlineDeliveryUsers()
                 }.onSuccess { users ->
                     allDeliveryUsers = users
                     availableDeliveriesCount = users.count { it.isOnline && hasValidDispatchLocation(it.location) }
@@ -463,9 +463,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         orderJob = viewModelScope.launch {
             while (true) {
                 runCatching {
-                    val mode = SupabaseApi.getDispatchMode()
+                    val mode = SupabaseApi.getDispatchModeCached()
                     dispatchMode = mode
-                    val sortedOrders = SupabaseApi.getOrders().sortedByDescending { it.createdAt }
+                    val sortedOrders = if (user.role == UserRole.CLIENT) {
+                        listOfNotNull(SupabaseApi.getActiveClientOrder(user.id))
+                    } else {
+                        val activeDeliveryOrder = SupabaseApi.getActiveDeliveryOrder(user.id)
+                        val queueOrders = SupabaseApi.getDeliveryQueue(user.id, mode)
+                        listOfNotNull(activeDeliveryOrder) + queueOrders.filter { it.id != activeDeliveryOrder?.id }
+                    }.sortedByDescending { it.createdAt }
                     selectActiveOrder(user, sortedOrders, mode)
                 }.onFailure {
                     Log.e("Rapidingo", "Error observando ordenes Supabase: ${it.message}")
@@ -801,8 +807,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             runCatching {
-                val orders = SupabaseApi.getOrders()
-                val mode = SupabaseApi.getDispatchMode()
+                val orders = SupabaseApi.getActiveDispatchOrders()
+                val mode = SupabaseApi.getDispatchModeCached()
                 dispatchMode = mode
                 val targetDelivery = if (mode == "AUTOMATIC") {
                     selectTargetDelivery(destinationLocation, orders)
@@ -954,7 +960,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val deliveryId = prefs.getString("user_id", null) ?: return
         viewModelScope.launch {
             runCatching {
-                val orders = SupabaseApi.getOrders()
+                val orders = SupabaseApi.getActiveDispatchOrders()
                 val rejectedBy = (order.rejectedBy + deliveryId).distinct()
                 val nextDelivery = selectTargetDelivery(order.destinationLocation ?: order.clientLocation ?: trinidadCenter, orders, rejectedBy)
                 SupabaseApi.updateOrder(

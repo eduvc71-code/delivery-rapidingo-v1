@@ -28,6 +28,10 @@ object SupabaseApi {
     private val anonKey: String
         get() = BuildConfig.SUPABASE_ANON_KEY
 
+    private const val DISPATCH_MODE_CACHE_MS = 60_000L
+    private var cachedDispatchMode: String? = null
+    private var cachedDispatchModeAt: Long = 0L
+
     suspend fun getUser(id: String): User? {
         val response = request("GET", "/rest/v1/users?id=eq.$id&limit=1")
         val array = JSONArray(response)
@@ -64,20 +68,86 @@ object SupabaseApi {
         return JSONArray(response).toObjectList(::parseUser)
     }
 
+    suspend fun getOnlineDeliveryUsers(): List<User> {
+        val response = request("GET", "/rest/v1/users?role=eq.DELIVERY&online=eq.true&order=name.asc")
+        return JSONArray(response)
+            .toObjectList(::parseUser)
+            .filter { it.location != null && (it.location.latitude != 0.0 || it.location.longitude != 0.0) }
+    }
+
     suspend fun getDispatchMode(): String {
         return try {
             val response = request("GET", "/rest/v1/settings?key=eq.dispatch_mode&limit=1")
             val array = JSONArray(response)
-            if (array.length() == 0) "AUTOMATIC" else array.getJSONObject(0).optString("value", "AUTOMATIC")
+            val mode = if (array.length() == 0) "AUTOMATIC" else array.getJSONObject(0).optString("value", "AUTOMATIC")
+            cachedDispatchMode = mode
+            cachedDispatchModeAt = System.currentTimeMillis()
+            mode
         } catch (e: Exception) {
             Log.e(TAG, "Error obteniendo dispatch_mode: ${e.message}")
             "AUTOMATIC"
         }
     }
 
+    suspend fun getDispatchModeCached(): String {
+        val cached = cachedDispatchMode
+        if (cached != null && System.currentTimeMillis() - cachedDispatchModeAt < DISPATCH_MODE_CACHE_MS) {
+            return cached
+        }
+        return getDispatchMode()
+    }
+
     suspend fun getOrders(): List<Order> {
         val response = request("GET", "/rest/v1/orders?order=created_at.desc")
         return JSONArray(response).toObjectList(::parseOrder)
+    }
+
+    suspend fun getOrder(id: String): Order? {
+        val response = request("GET", "/rest/v1/orders?id=eq.${urlEncode(id)}&limit=1")
+        val array = JSONArray(response)
+        return if (array.length() == 0) null else parseOrder(array.getJSONObject(0))
+    }
+
+    suspend fun getActiveDispatchOrders(limit: Int = 300): List<Order> {
+        val response = request(
+            "GET",
+            "/rest/v1/orders?status=not.in.(${OrderStatus.COMPLETED.name},${OrderStatus.CANCELLED.name})&order=created_at.desc&limit=$limit"
+        )
+        return JSONArray(response).toObjectList(::parseOrder)
+    }
+
+    suspend fun getActiveClientOrder(clientId: String): Order? {
+        val response = request(
+            "GET",
+            "/rest/v1/orders?client_id=eq.${urlEncode(clientId)}&status=not.in.(${OrderStatus.COMPLETED.name},${OrderStatus.CANCELLED.name})&order=created_at.desc&limit=1"
+        )
+        val array = JSONArray(response)
+        return if (array.length() == 0) null else parseOrder(array.getJSONObject(0))
+    }
+
+    suspend fun getActiveDeliveryOrder(deliveryId: String): Order? {
+        val response = request(
+            "GET",
+            "/rest/v1/orders?delivery_id=eq.${urlEncode(deliveryId)}&status=not.in.(${OrderStatus.COMPLETED.name},${OrderStatus.CANCELLED.name})&order=created_at.desc&limit=1"
+        )
+        val array = JSONArray(response)
+        return if (array.length() == 0) null else parseOrder(array.getJSONObject(0))
+    }
+
+    suspend fun getDeliveryQueue(deliveryId: String, dispatchMode: String, limit: Int = 10): List<Order> {
+        val targetFilter = if (dispatchMode == "OPERATOR") {
+            "target_delivery_id=eq.${urlEncode(deliveryId)}"
+        } else {
+            "or=(target_delivery_id.eq.${urlEncode(deliveryId)},target_delivery_id.is.null)"
+        }
+        val response = request(
+            "GET",
+            "/rest/v1/orders?status=eq.${OrderStatus.PENDING_PRICE.name}&$targetFilter&order=created_at.asc&limit=${limit * 3}"
+        )
+        return JSONArray(response)
+            .toObjectList(::parseOrder)
+            .filter { !it.rejectedBy.contains(deliveryId) }
+            .take(limit)
     }
 
     suspend fun upsertOrder(order: Order) {
