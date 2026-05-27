@@ -140,6 +140,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             logoColor = 0xFF673AB7L
         ),
         Restaurant(
+            id = "la_toscana_rapido",
+            name = "La Toscana - Rápido",
+            category = "COMIDA_RAPIDA",
+            rating = 4.6,
+            deliveryTime = "25-35 min",
+            deliveryFee = 6.0,
+            minOrder = 20.0,
+            phone = "73939626",
+            address = "Calle La Paz esq. 18 de Noviembre",
+            schedule = "Lun-Dom: 11:30 - 22:00",
+            logoUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
+            menuUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
+            logoColor = 0xFFBA68C8L
+        ),
+        Restaurant(
             id = "la_plazuela",
             name = "La Plazuela J&C",
             category = "RESTAURANTE",
@@ -213,21 +228,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             logoUrl = "file:///android_asset/restaurants/toby.jpg",
             menuUrl = "file:///android_asset/restaurants/toby.jpg",
             logoColor = 0xFFD32F2FL
-        ),
-        Restaurant(
-            id = "la_toscana_rapido",
-            name = "La Toscana - Rápido",
-            category = "COMIDA_RAPIDA",
-            rating = 4.6,
-            deliveryTime = "25-35 min",
-            deliveryFee = 6.0,
-            minOrder = 20.0,
-            phone = "73939626",
-            address = "Calle La Paz esq. 18 de Noviembre",
-            schedule = "Lun-Dom: 11:30 - 22:00",
-            logoUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
-            menuUrl = "file:///android_asset/restaurants/la_toscana2.jpg",
-            logoColor = 0xFFBA68C8L
         )
     )
 

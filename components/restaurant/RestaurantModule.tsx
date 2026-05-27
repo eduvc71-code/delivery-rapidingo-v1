@@ -8,14 +8,14 @@ import {
 } from 'lucide-react';
 
 const RESTAURANT_PARTNERS = [
-  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '74721716' },
-  { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/la_toscana2.jpg', phone: '69376937' },
+  { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '74721716' },
+  { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/el_brete.jpg', phone: '69376937' },
   { id: 'la_toscana', name: 'La Toscana', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '73939626' },
-  { id: 'la_plazuela', name: 'La Plazuela J&C', logoUrl: 'assets/restaurants/toby.jpg', phone: '73900041' },
-  { id: 'la_coqueta', name: 'La Coqueta', logoUrl: 'assets/restaurants/el_brete.jpg', phone: '72845195' },
-  { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/la_toscana1.jpg', phone: '77848655' },
-  { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '72815881' },
-  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '67270686' }
+  { id: 'la_plazuela', name: 'La Plazuela J&C', logoUrl: 'assets/restaurants/la_plazuela.jpg', phone: '73900041' },
+  { id: 'la_coqueta', name: 'La Coqueta', logoUrl: 'assets/restaurants/la_coqueta.jpg', phone: '72845195' },
+  { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '77848655' },
+  { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '72815881' },
+  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/toby.jpg', phone: '67270686' }
 ];
 
 const parseRestaurantItems = (description: string, restaurantName: string, restaurantId?: string): string[] => {

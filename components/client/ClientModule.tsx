@@ -116,6 +116,20 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     color: '#FFC107'
   },
   {
+    id: 'la_toscana_rapido',
+    name: 'La Toscana - Rapido',
+    category: 'COMIDA RAPIDA',
+    rating: 4.6,
+    deliveryTime: '25-35 min',
+    deliveryFee: 6,
+    minOrder: 20,
+    phone: '73939626',
+    address: 'Calle La Paz esq. 18 de Noviembre',
+    schedule: 'Lun-Dom: 11:30 - 22:00',
+    logoUrl: 'assets/restaurants/la_toscana2.jpg',
+    color: '#FFC107'
+  },
+  {
     id: 'la_plazuela',
     name: 'La Plazuela J&C',
     category: 'RESTAURANTE',
@@ -184,20 +198,6 @@ const RESTAURANT_PARTNERS: RestaurantPartner[] = [
     schedule: 'Lun-Dom: 12:00 - 22:00',
     logoUrl: 'assets/restaurants/toby.jpg',
     color: '#FF6A00'
-  },
-  {
-    id: 'la_toscana_rapido',
-    name: 'La Toscana - Rapido',
-    category: 'COMIDA RAPIDA',
-    rating: 4.6,
-    deliveryTime: '25-35 min',
-    deliveryFee: 6,
-    minOrder: 20,
-    phone: '73939626',
-    address: 'Calle La Paz esq. 18 de Noviembre',
-    schedule: 'Lun-Dom: 11:30 - 22:00',
-    logoUrl: 'assets/restaurants/la_toscana2.jpg',
-    color: '#FFC107'
   }
 ];
 
