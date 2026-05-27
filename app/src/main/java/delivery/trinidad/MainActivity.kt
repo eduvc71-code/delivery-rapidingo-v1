@@ -2305,14 +2305,14 @@ private fun resolveRestaurantId(restaurantName: String): String {
     return when (restaurantName.trim().lowercase()) {
         "wings & drinks" -> "wings_drinks"
         "el brete churrasqueria" -> "el_brete"
-        "la toscana centro" -> "la_toscana_1"
-        "la toscana - tablitas" -> "la_toscana_2"
+        "la toscana centro" -> "la_toscana"
+        "la toscana - tablitas" -> "la_toscana"
         "la plazuela j&c" -> "la_plazuela"
         "la coqueta" -> "la_coqueta"
         "mr. grill" -> "mr_grill"
         "restaurante el benianito" -> "el_benianito"
         "toby - cuarto de libra" -> "toby"
-        "la toscana - rapido" -> "la_toscana_rapido"
+        "la toscana - rapido" -> "la_toscana"
         else -> restaurantName.trim().lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
     }
 }

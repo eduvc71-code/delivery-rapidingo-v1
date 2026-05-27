@@ -10,17 +10,15 @@ import {
 const RESTAURANT_PARTNERS = [
   { id: 'wings_drinks', name: 'Wings & Drinks', logoUrl: 'assets/restaurants/el_benianito.jpg', phone: '74721716' },
   { id: 'el_brete', name: 'El Brete Churrasqueria', logoUrl: 'assets/restaurants/la_toscana2.jpg', phone: '69376937' },
-  { id: 'la_toscana_1', name: 'La Toscana Centro', logoUrl: 'assets/restaurants/la_plazuela.jpg', phone: '73939626' },
-  { id: 'la_toscana_2', name: 'La Toscana - Tablitas', logoUrl: 'assets/restaurants/la_coqueta.jpg', phone: '73939626' },
+  { id: 'la_toscana', name: 'La Toscana', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '73939626' },
   { id: 'la_plazuela', name: 'La Plazuela J&C', logoUrl: 'assets/restaurants/toby.jpg', phone: '73900041' },
   { id: 'la_coqueta', name: 'La Coqueta', logoUrl: 'assets/restaurants/el_brete.jpg', phone: '72845195' },
   { id: 'mr_grill', name: 'Mr. Grill', logoUrl: 'assets/restaurants/la_toscana1.jpg', phone: '77848655' },
   { id: 'el_benianito', name: 'Restaurante El Benianito', logoUrl: 'assets/restaurants/wings_drinks.jpg', phone: '72815881' },
-  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '67270686' },
-  { id: 'la_toscana_rapido', name: 'La Toscana - Rapido', logoUrl: 'assets/restaurants/mr_grill.jpg', phone: '73939626' }
+  { id: 'toby', name: 'Toby - Cuarto de Libra', logoUrl: 'assets/restaurants/la_toscana.jpg', phone: '67270686' }
 ];
 
-const parseRestaurantItems = (description: string, restaurantName: string): string[] => {
+const parseRestaurantItems = (description: string, restaurantName: string, restaurantId?: string): string[] => {
   const lines = description.split('\n');
   const items: string[] = [];
   let isSection = false;
@@ -31,19 +29,22 @@ const parseRestaurantItems = (description: string, restaurantName: string): stri
 
     if (trimmed.toUpperCase().startsWith('RESTAURANTE:')) {
       const name = trimmed.replace(/^RESTAURANTE:\s*/i, '').trim();
-      isSection = name.toLowerCase() === restaurantName.toLowerCase();
+      if (restaurantId === 'la_toscana') {
+        isSection = name.toLowerCase().startsWith('la toscana');
+      } else {
+        isSection = name.toLowerCase() === restaurantName.toLowerCase();
+      }
       continue;
     }
 
     if (isSection) {
       if (trimmed.startsWith('-')) {
         items.push(trimmed.substring(1).trim());
-      } else if (trimmed.toUpperCase().startsWith('TOTAL') || trimmed.toUpperCase().startsWith('CLIENTE')) {
-        isSection = false;
+      } else if (trimmed.toUpperCase().startsWith('TOTAL PLATOS:')) {
+        break;
       }
     }
   }
-
   return items;
 };
 
@@ -164,7 +165,7 @@ export const RestaurantModule: React.FC = () => {
       historyId,
       id: order.id,
       date: new Date().toLocaleString(),
-      items: parseRestaurantItems(order.description, restaurantUser?.name || ''),
+      items: parseRestaurantItems(order.description, restaurantUser?.name || '', restaurantUser?.id),
       driverName: order.deliveryName || 'Repartidor Trinidad',
       prepTime: prepMinutes,
     };
@@ -177,7 +178,7 @@ export const RestaurantModule: React.FC = () => {
   const restaurantOrders = useMemo(() => {
     if (!restaurantUser) return [];
     return allOrders.filter(order => {
-      const items = parseRestaurantItems(order.description, restaurantUser.name);
+      const items = parseRestaurantItems(order.description, restaurantUser.name, restaurantUser.id);
       return items.length > 0;
     });
   }, [allOrders, restaurantUser]);
@@ -227,14 +228,12 @@ export const RestaurantModule: React.FC = () => {
   const RESTAURANT_PASSWORDS: Record<string, string> = {
     wings_drinks: 'wings747',
     el_brete: 'brete693',
-    la_toscana_1: 'toscana739',
-    la_toscana_2: 'toscana739',
+    la_toscana: 'toscana739',
     la_plazuela: 'plazuela739',
     la_coqueta: 'coqueta728',
     mr_grill: 'grill778',
     el_benianito: 'benianito728',
-    toby: 'toby672',
-    la_toscana_rapido: 'toscana739'
+    toby: 'toby672'
   };
 
   const handleConfirmAuth = () => {
@@ -504,7 +503,7 @@ export const RestaurantModule: React.FC = () => {
         {activeTab === 'INCOMING' && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {incomingOrders.map(order => {
-              const items = parseRestaurantItems(order.description, restaurantUser.name);
+              const items = parseRestaurantItems(order.description, restaurantUser.name, restaurantUser.id);
               const prepVal = selectedPrepTimes[order.id] || '15';
 
               return (
@@ -584,7 +583,7 @@ export const RestaurantModule: React.FC = () => {
         {activeTab === 'PREPARING' && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {preparingOrders.map(order => {
-              const items = parseRestaurantItems(order.description, restaurantUser.name);
+              const items = parseRestaurantItems(order.description, restaurantUser.name, restaurantUser.id);
               const { prepTime, timestamp } = getRestaurantStatus(order, restaurantUser.id);
 
               return (
@@ -636,7 +635,7 @@ export const RestaurantModule: React.FC = () => {
         {activeTab === 'READY' && (
           <div className="space-y-4 animate-in fade-in duration-300">
             {readyOrders.map(order => {
-              const items = parseRestaurantItems(order.description, restaurantUser.name);
+              const items = parseRestaurantItems(order.description, restaurantUser.name, restaurantUser.id);
 
               return (
                 <div key={order.id} className="bg-brand-black/90 border border-white/5 rounded-3xl p-5 shadow-2xl space-y-4 relative overflow-hidden group">
