@@ -49,6 +49,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var completedOrdersList by mutableStateOf<List<Order>>(emptyList())
     var lastReadChatSize by mutableIntStateOf(0)
     var inAppNotificationMessage by mutableStateOf<String?>(null)
+    var isAppInForeground by mutableStateOf(false)
 
     var plannedRoute by mutableStateOf<List<MyLatLng>>(emptyList())
     private var lastRouteQueryTime = 0L
@@ -64,6 +65,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var orderJob: Job? = null
     private var deliveryStatusJob: Job? = null
     private var reportsJob: Job? = null
+
+    private fun sendSystemNotification(title: String, message: String) {
+        if (!isAppInForeground) {
+            notificationHelper.sendNotification(title, message)
+        }
+    }
 
     // ==================== ESTADOS PARA CARRITO INTERACTIVO ====================
     var tempOrderItems by mutableStateOf<List<TempOrderItem>>(emptyList())
@@ -533,7 +540,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (lastMsg.senderId != myId) {
                     val title = "Nuevo mensaje de ${if (currentMode == UserRole.CLIENT) "Repartidor" else "Cliente"}"
                     val msg = lastMsg.text.ifBlank { "Te enviaron una imagen/archivo" }
-                    notificationHelper.sendNotification(title, msg)
+                    sendSystemNotification(title, msg)
                     inAppNotificationMessage = msg
                 }
             }
@@ -554,7 +561,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 if (statusMsg != null && shouldShowStatusNotification(order.id, order.status)) {
-                    notificationHelper.sendNotification("Rapidingo", statusMsg)
+                    sendSystemNotification("Rapidingo", statusMsg)
                     inAppNotificationMessage = statusMsg
                 }
             }
@@ -776,7 +783,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         if (order.status == OrderStatus.IN_DELIVERY && deliveryDestination != null) {
                             val distance = calculateDistance(newLoc, deliveryDestination)
                             if (distance < 50.0) {
-                                notificationHelper.sendNotification("Rapidingo", "El repartidor ha llegado a tu ubicacion!")
+                                sendSystemNotification("Rapidingo", "El repartidor ha llegado a tu ubicacion!")
                                 inAppNotificationMessage = "REPARTIDOR LLEGO!"
                             }
                         }
@@ -902,6 +909,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }.onFailure {
                 Log.e("Rapidingo", "Error al procesar estado final: ${it.message}")
+            }
+        }
+    }
+
+    fun confirmRestaurantPickup(restaurantId: String, restaurantName: String, allPickedUp: Boolean) {
+        val currentOrder = activeOrder ?: return
+        val now = System.currentTimeMillis()
+        val systemMsg = ChatMessage(
+            id = "sys-pickup-$restaurantId-$now",
+            senderId = "system",
+            text = "RESTAURANT_STATUS:$restaurantId:DELIVERED",
+            timestamp = now
+        )
+        val notificationMsg = ChatMessage(
+            id = "sys-notif-pickup-$restaurantId-$now",
+            senderId = "system",
+            text = "Delivery recibio el pedido de $restaurantName.",
+            timestamp = now
+        )
+        val nextHistory = currentOrder.chatHistory + systemMsg + notificationMsg
+        val nextStatus = if (allPickedUp) OrderStatus.IN_DELIVERY else OrderStatus.PICKING_UP
+        val nextOrder = currentOrder.copy(status = nextStatus, chatHistory = nextHistory)
+
+        activeOrder = nextOrder
+        lastChatSize = nextHistory.size
+        lastReadChatSize = nextHistory.size
+
+        viewModelScope.launch {
+            runCatching {
+                SupabaseApi.updateOrder(
+                    currentOrder.id,
+                    JSONObject()
+                        .put("status", nextStatus.name)
+                        .put("chat_history", JSONArray(nextHistory.map { it.toJson() }))
+                )
+            }.onFailure {
+                Log.e("Rapidingo", "Error confirmando recojo restaurante: ${it.message}")
             }
         }
     }

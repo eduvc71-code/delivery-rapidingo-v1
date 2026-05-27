@@ -252,6 +252,58 @@ const openWhatsAppMessage = (phone: string | undefined, message: string) => {
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
 };
 
+const getRestaurantStatusMessages = (order: Order) => {
+  const accepted: string[] = [];
+  const ready: string[] = [];
+
+  (order.chatHistory || []).forEach((msg) => {
+    if (msg.text.startsWith('RESTAURANT_STATUS:')) {
+      const parts = msg.text.split(':');
+      if (parts[2] === 'ACCEPTED') accepted.push(`${parts[3] || '15'} min`);
+      if (parts[2] === 'READY') ready.push('listo');
+    }
+  });
+
+  return { accepted, ready };
+};
+
+const hasSystemMessage = (order: Order, marker: string) =>
+  (order.chatHistory || []).some((msg) => msg.text === marker || msg.text.startsWith(marker));
+
+const getClientPersistentStatus = (order: Order, dispatchMode: string) => {
+  const isRestaurantOrder = order.type === OrderType.RESTAURANT ||
+    order.category === 'COMIDA' ||
+    order.description.toUpperCase().includes('RESTAURANTE:');
+  const restaurant = getRestaurantStatusMessages(order);
+
+  if (order.status === OrderStatus.PENDING_PRICE) {
+    return dispatchMode === 'OPERATOR'
+      ? 'Pedido recibido por Operadora. En breve enviara la cotizacion.'
+      : 'Pedido recibido. Buscando delivery para cotizar.';
+  }
+  if (order.status === OrderStatus.WAITING_CONFIRM) return 'Cotizacion lista. Confirma para continuar.';
+  if (order.status === OrderStatus.CONFIRMED_BY_CLIENT) {
+    return isRestaurantOrder
+      ? 'Pedido confirmado. Operadora coordinara con el restaurante.'
+      : 'Pedido confirmado. Coordinando delivery.';
+  }
+  if (order.status === OrderStatus.PICKING_UP) {
+    if (isRestaurantOrder) {
+      if (restaurant.ready.length > 0) return 'Restaurante marco tu pedido listo para recojo.';
+      if (order.deliveryName && restaurant.accepted.length > 0) return `Delivery asignado. Restaurante preparando: ${restaurant.accepted.join(' / ')}.`;
+      if (restaurant.accepted.length > 0) return `Restaurante preparando. Tiempo estimado: ${restaurant.accepted.join(' / ')}.`;
+      if (hasSystemMessage(order, 'OPERATOR_RESTAURANT_REQUEST')) return 'Pedido enviado al restaurante. Esperando tiempo de preparacion.';
+      return order.deliveryName ? 'Delivery asignado. Recogera tu pedido en restaurante.' : 'Coordinando restaurante.';
+    }
+    return 'Delivery gestionando tu pedido.';
+  }
+  if (order.status === OrderStatus.IN_DELIVERY) return 'Delivery recogio tu pedido. Seguimiento activado hacia tu destino.';
+  if (order.status === OrderStatus.DELIVERED_BY_REPARTIDOR) return 'Delivery llego a tu destino.';
+  if (order.status === OrderStatus.COMPLETED) return 'Pedido completado. Gracias por tu confianza.';
+  if (order.status === OrderStatus.CANCELLED) return 'Pedido cancelado.';
+  return getOrderStatusLabel(order.status);
+};
+
 type DeliveryPoint = {
   lat: number;
   lng: number;
@@ -755,6 +807,8 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
   
   const [message, setMessage] = useState<string | null>(null);
   const [completedTimerActive, setCompletedTimerActive] = useState(false);
+  const persistentStatus = activeOrder ? getClientPersistentStatus(activeOrder, dispatchMode) : '';
+  const [statusFlashKey, setStatusFlashKey] = useState(0);
 
   const openDestinationPicker = async (isAlternative: boolean) => {
     const point = destinationPoint || await getCurrentDeliveryPoint();
@@ -795,6 +849,10 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [activeOrder?.chatHistory, isChatOpen]);
+
+  useEffect(() => {
+    if (persistentStatus) setStatusFlashKey((current) => current + 1);
+  }, [persistentStatus]);
 
   useEffect(() => {
     if (!activeOrder || activeOrder.status !== OrderStatus.WAITING_CONFIRM) {
@@ -1509,6 +1567,17 @@ export const ClientModule: React.FC<ClientModuleProps> = ({ onClose }) => {
                         : getOrderStatusLabel(activeOrder.status)}
                     </span>
                   </div>
+                </div>
+
+                <div className="bg-brand-black/95 border border-brand-orange/25 rounded-[24px] p-4 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 h-full w-1 bg-brand-orange"></div>
+                  <p className="text-[9px] font-black text-brand-yellow uppercase tracking-[3px] font-teko italic mb-1">Estado de tu pedido</p>
+                  <p
+                    key={statusFlashKey}
+                    className="text-sm font-black text-white uppercase font-montserrat leading-snug animate-status-flash"
+                  >
+                    {persistentStatus}
+                  </p>
                 </div>
                 
                 {canShowLiveTracking ? (

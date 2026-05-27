@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { Camera, Mail, Phone, X, Check, ArrowRight, Loader2, MapPin, CheckSquare, Square, Navigation, ShieldCheck } from 'lucide-react';
-import { auth } from '../services/firebase';
-import { GoogleAuthProvider, getRedirectResult, signInWithPopup, signInWithRedirect, User as FirebaseUser } from 'firebase/auth';
+import { supabase } from '../services/supabaseClient';
 import { SupabasePwaApi } from '../services/supabase';
 
 interface RegisterProps {
@@ -40,16 +39,25 @@ export const Register: React.FC<RegisterProps> = ({ role, onRegister }) => {
   }, [step]);
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          void applyGoogleUser(result.user);
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const googleUser = session.user;
+          const googleEmail = (googleUser.email || '').toLowerCase();
+          setGoogleUid(googleUser.id);
+          setEmail(googleEmail);
+          setName((googleUser.user_metadata?.full_name || googleUser.email?.split('@')[0] || '').toUpperCase());
+          setTermsAccepted(true);
+          if (googleEmail) {
+            await recoverRegisteredEmail(googleEmail);
+          }
         }
-      })
-      .catch((error) => {
-        console.error("Error con Gmail:", error);
-        alert("No se pudo iniciar sesion con Gmail. Revisa la configuracion de Firebase Auth.");
-      });
+      } catch (error) {
+        console.error("Error al obtener sesión de Supabase:", error);
+      }
+    };
+    void checkSession();
   }, []);
 
   useEffect(() => {
@@ -69,17 +77,6 @@ export const Register: React.FC<RegisterProps> = ({ role, onRegister }) => {
     return true;
   };
 
-  const applyGoogleUser = async (googleUser: FirebaseUser) => {
-    const googleEmail = (googleUser.email || '').toLowerCase();
-    setGoogleUid(googleUser.uid);
-    setEmail(googleEmail);
-    setName((googleUser.displayName || googleUser.email?.split('@')[0] || '').toUpperCase());
-    setTermsAccepted(true);
-    if (googleEmail) {
-      await recoverRegisteredEmail(googleEmail);
-    }
-  };
-
   const handleGoogleRegister = async () => {
     if (!termsAccepted) {
       alert('Debe aceptar los terminos antes de continuar con Gmail');
@@ -87,21 +84,17 @@ export const Register: React.FC<RegisterProps> = ({ role, onRegister }) => {
     }
 
     setIsLoading(true);
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-      const result = await signInWithPopup(auth, provider);
-      await applyGoogleUser(result.user);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname
+        }
+      });
+      if (error) throw error;
     } catch (error: any) {
-      const code = error?.code || '';
-      if (code.includes('popup') || code.includes('redirect') || code.includes('operation-not-supported')) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
       console.error("Error con Gmail:", error);
-      alert("No se pudo iniciar sesion con Gmail. Activa Google en Firebase Authentication y revisa tu dominio autorizado.");
-    } finally {
+      alert("No se pudo iniciar sesion con Gmail. Asegúrate de tener Google habilitado en Supabase.");
       setIsLoading(false);
     }
   };

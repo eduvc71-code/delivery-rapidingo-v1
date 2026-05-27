@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { User, Order, UserRole, OrderStatus, ChatMessage } from '../types';
 import { MOCK_HISTORY } from '../constants';
 import { SupabasePwaApi } from '../services/supabase';
-import { auth } from '../services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { supabase } from '../services/supabaseClient';
 
 interface AppContextType {
   clientUser: User | null;
@@ -167,16 +166,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsCheckingSession(false);
     }
 
-    return onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser) {
+    // Escuchar el estado de autenticación de Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user;
+      if (!user) {
         setIsCheckingSession(false);
         return;
       }
 
-      SupabasePwaApi.getUser(firebaseUser.uid)
+      SupabasePwaApi.getUser(user.id)
         .then(async (savedUser) => {
-          if (!savedUser && firebaseUser.email) {
-            savedUser = await SupabasePwaApi.getUserByEmail(firebaseUser.email);
+          if (!savedUser && user.email) {
+            savedUser = await SupabasePwaApi.getUserByEmail(user.email);
           }
           if (savedUser) {
             if (savedUser.role === UserRole.CLIENT) setClientUser(savedUser);
@@ -193,6 +194,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setIsCheckingSession(false);
         });
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -468,6 +473,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error('No se pudo marcar usuario offline:', error);
       });
     }
+
+    // Cerrar sesión en el proveedor de autenticación de Supabase
+    supabase.auth.signOut().catch((error) => {
+      console.error('Error al cerrar sesión de Supabase Auth:', error);
+    });
 
     if (roleToLogout === UserRole.CLIENT) setClientUser(null);
     if (roleToLogout === UserRole.DELIVERY) setDeliveryUser(null);

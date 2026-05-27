@@ -288,6 +288,7 @@ private fun rapidingoTextFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 class MainActivity : ComponentActivity() {
+    private var mainViewModel: MainViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -299,6 +300,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             DeliveryRapidingoTheme {
                 val viewModel: MainViewModel = viewModel()
+                mainViewModel = viewModel
+                LaunchedEffect(Unit) {
+                    viewModel.isAppInForeground = true
+                }
                 LocationHandler(viewModel)
                 GPSCheck(LocalContext.current)
                 MainNavigation(viewModel)
@@ -308,7 +313,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        mainViewModel?.isAppInForeground = true
         NotificationHelper(this).clearServiceNotifications()
+    }
+
+    override fun onPause() {
+        mainViewModel?.isAppInForeground = false
+        super.onPause()
     }
 }
 
@@ -2041,6 +2052,50 @@ fun ReportsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     )
 }
 
+private fun clientPersistentStatus(order: Order, dispatchMode: String): String {
+    val isFoodOrder = order.category == "COMIDA" || order.description.contains("RESTAURANTE:", ignoreCase = true)
+    val restaurantAccepted = order.chatHistory.lastOrNull { it.text.startsWith("RESTAURANT_STATUS:") && it.text.contains(":ACCEPTED:") }
+    val restaurantReady = order.chatHistory.any { it.text.startsWith("RESTAURANT_STATUS:") && it.text.contains(":READY") }
+    val restaurantRequested = order.chatHistory.any { it.text == "OPERATOR_RESTAURANT_REQUEST" }
+
+    return when (order.status) {
+        OrderStatus.PENDING_PRICE -> if (dispatchMode == "OPERATOR") {
+            "PEDIDO RECIBIDO POR OPERADORA. EN BREVE ENVIARA LA COTIZACION."
+        } else {
+            "PEDIDO RECIBIDO. BUSCANDO DELIVERY PARA COTIZAR."
+        }
+        OrderStatus.WAITING_CONFIRM -> "COTIZACION LISTA. CONFIRMA PARA CONTINUAR."
+        OrderStatus.CONFIRMED_BY_CLIENT -> if (isFoodOrder) {
+            "PEDIDO CONFIRMADO. OPERADORA COORDINARA CON EL RESTAURANTE."
+        } else {
+            "PEDIDO CONFIRMADO. COORDINANDO DELIVERY."
+        }
+        OrderStatus.PICKING_UP -> if (isFoodOrder) {
+            when {
+                restaurantReady -> "RESTAURANTE MARCO TU PEDIDO LISTO PARA RECOJO."
+                restaurantAccepted != null -> {
+                    val minutes = restaurantAccepted.text.split(":").getOrNull(3) ?: "15"
+                    if (order.deliveryName != null) {
+                        "DELIVERY ASIGNADO. RESTAURANTE PREPARANDO: $minutes MIN."
+                    } else {
+                        "RESTAURANTE PREPARANDO. TIEMPO ESTIMADO: $minutes MIN."
+                    }
+                }
+                restaurantRequested -> "PEDIDO ENVIADO AL RESTAURANTE. ESPERANDO TIEMPO DE PREPARACION."
+                order.deliveryName != null -> "DELIVERY ASIGNADO. RECOGERA TU PEDIDO EN RESTAURANTE."
+                else -> "COORDINANDO RESTAURANTE."
+            }
+        } else {
+            "DELIVERY GESTIONANDO TU PEDIDO."
+        }
+        OrderStatus.IN_DELIVERY -> "DELIVERY RECOGIO TU PEDIDO. SEGUIMIENTO ACTIVADO HACIA TU DESTINO."
+        OrderStatus.DELIVERED_BY_REPARTIDOR -> "DELIVERY LLEGO A TU DESTINO."
+        OrderStatus.COMPLETED -> "PEDIDO COMPLETADO. GRACIAS POR TU CONFIANZA."
+        OrderStatus.CANCELLED -> "PEDIDO CANCELADO."
+        else -> order.status.toSpanish().uppercase()
+    }
+}
+
 @Composable
 fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
     val context = LocalContext.current
@@ -2089,11 +2144,7 @@ fun OSMOrderTracking(viewModel: MainViewModel, onOpenChat: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            val statusText = if (order.status == OrderStatus.PENDING_PRICE) {
-                                if (viewModel.dispatchMode == "OPERATOR") "ESPERANDO COTIZACION OPERADORA" else "ESPERANDO REPARTIDOR"
-                            } else {
-                                order.status.toSpanish().uppercase()
-                            }
+                            val statusText = clientPersistentStatus(order, viewModel.dispatchMode)
                             Text(
                                 statusText, 
                                 fontWeight = FontWeight.Black, 
@@ -2529,9 +2580,7 @@ fun OSMDeliveryTracking(viewModel: MainViewModel, pPrice: String, sPrice: String
                                                         Button(
                                                             onClick = {
                                                                 val allPickedUp = restaurantProgress.all { it.restaurantId == progress.restaurantId || it.status == "DELIVERED" }
-                                                                viewModel.addChatMessage("RESTAURANT_STATUS:${progress.restaurantId}:DELIVERED", "system")
-                                                                viewModel.addChatMessage("Delivery recibio el pedido de ${progress.restaurant}", "system")
-                                                                if (allPickedUp) viewModel.updateOrderStatus(OrderStatus.IN_DELIVERY)
+                                                                viewModel.confirmRestaurantPickup(progress.restaurantId, progress.restaurant, allPickedUp)
                                                             },
                                                             modifier = Modifier.fillMaxWidth().height(50.dp),
                                                             shape = RoundedCornerShape(12.dp),

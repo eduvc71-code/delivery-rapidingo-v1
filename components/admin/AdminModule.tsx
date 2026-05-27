@@ -29,6 +29,62 @@ const getPasswordProgress = (typed: string, correct: string): number => {
   return 0;
 };
 
+type RestaurantCoordination = {
+  restaurantId: string;
+  restaurant: string;
+  status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERED';
+  prepTime: number;
+};
+
+const RESTAURANT_ID_BY_NAME: Record<string, string> = {
+  'wings & drinks': 'wings_drinks',
+  'el brete churrasqueria': 'el_brete',
+  'la toscana centro': 'la_toscana_1',
+  'la toscana - tablitas': 'la_toscana_2',
+  'la plazuela j&c': 'la_plazuela',
+  'la coqueta': 'la_coqueta',
+  'mr. grill': 'mr_grill',
+  'restaurante el benianito': 'el_benianito',
+  'toby - cuarto de libra': 'toby',
+  'la toscana - rapido': 'la_toscana_rapido'
+};
+
+const resolveRestaurantId = (restaurantName: string) =>
+  RESTAURANT_ID_BY_NAME[restaurantName.trim().toLowerCase()] ||
+  restaurantName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+
+const getRestaurantNamesFromOrder = (description: string) => {
+  const names: string[] = [];
+  description.split(/\r?\n/).forEach((line) => {
+    const match = line.trim().match(/^RESTAURANTE:\s*(.+)$/i);
+    if (match && !names.includes(match[1].trim())) names.push(match[1].trim());
+  });
+  return names;
+};
+
+const getRestaurantCoordination = (order: Order): RestaurantCoordination[] => {
+  return getRestaurantNamesFromOrder(order.description).map((restaurant) => {
+    const restaurantId = resolveRestaurantId(restaurant);
+    let status: RestaurantCoordination['status'] = 'PENDING';
+    let prepTime = 0;
+
+    (order.chatHistory || []).forEach((msg) => {
+      const parts = msg.text.split(':');
+      if (parts[0] === 'RESTAURANT_STATUS' && parts[1] === restaurantId) {
+        if (parts[2] === 'ACCEPTED' || parts[2] === 'READY' || parts[2] === 'DELIVERED') {
+          status = parts[2];
+          if (parts[2] === 'ACCEPTED') prepTime = parseInt(parts[3] || '0') || 0;
+        }
+      }
+    });
+
+    return { restaurantId, restaurant, status, prepTime };
+  });
+};
+
+const hasOperatorRestaurantRequest = (order: Order) =>
+  (order.chatHistory || []).some((msg) => msg.text === 'OPERATOR_RESTAURANT_REQUEST');
+
 // Mapa general para mostrar la ubicación de todos los repartidores
 const DriversMap: React.FC<{ drivers: User[] }> = ({ drivers }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -106,6 +162,8 @@ const DriversMap: React.FC<{ drivers: User[] }> = ({ drivers }) => {
 export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADMIN }) => {
   const { allOrders, adminUser, operatorUser, registerUser, logout, updateOrder, playNotificationSound } = useApp();
   
+  // Si cualquiera de las dos sesiones de gestión está activa, la usamos.
+  // Esto permite iniciar sesión como operadora desde la página de administración y viceversa.
   const currentUser = adminUser || operatorUser;
   const isAdmin = adminUser !== null;
   
@@ -181,11 +239,6 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
     if (matchedKey) {
       const data = ADMIN_PASSWORDS[matchedKey];
       const targetRole = matchedKey === 'admin747' ? UserRole.ADMIN : UserRole.OPERATOR;
-      
-      if (role !== targetRole) {
-        setAuthError('CONTRASEÑA INVALIDA');
-        return;
-      }
 
       registerUser({
         id: matchedKey,
@@ -276,6 +329,35 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
     }
   };
 
+  const handleRequestRestaurantPreparation = async (order: Order) => {
+    const now = Date.now();
+    const systemMsg: ChatMessage = {
+      id: `sys-restaurant-request-${now}`,
+      senderId: 'system',
+      text: 'OPERATOR_RESTAURANT_REQUEST',
+      timestamp: now,
+      isSystem: true
+    };
+    const notifMsg: ChatMessage = {
+      id: `sys-restaurant-request-note-${now}`,
+      senderId: 'system',
+      text: 'Operadora envio el pedido al restaurante. Esperando tiempo de preparacion.',
+      timestamp: now,
+      isSystem: true
+    };
+
+    try {
+      await updateOrder({
+        ...order,
+        status: OrderStatus.PICKING_UP,
+        chatHistory: [...(order.chatHistory || []), systemMsg, notifMsg]
+      });
+      playNotificationSound();
+    } catch (e) {
+      alert('Error enviando el pedido al restaurante.');
+    }
+  };
+
   // Asignar conductor manualmente
   const handleAssignDriver = async (order: Order) => {
     if (!selectedDriverId) {
@@ -294,10 +376,16 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
       isSystem: true
     };
 
+    const coordination = getRestaurantCoordination(order);
+    const acceptedPrepTimes = coordination
+      .filter((restaurant) => restaurant.status === 'ACCEPTED' || restaurant.status === 'READY')
+      .map((restaurant) => `${restaurant.restaurant}: ${restaurant.prepTime || 0} min`)
+      .join(' | ');
+
     const notifMsg: ChatMessage = {
       id: `sys-notif-assign-${Date.now()}`,
       senderId: 'system',
-      text: `Repartidor asignado: ${driver.name} (Tel: ${driver.phone}). En camino a retirar.`,
+      text: `Repartidor asignado: ${driver.name} (Tel: ${driver.phone}). ${acceptedPrepTimes ? `Tiempo restaurante: ${acceptedPrepTimes}. ` : ''}Destino final: ubicacion del cliente.`,
       timestamp: Date.now(),
       isSystem: true
     };
@@ -428,11 +516,14 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
             let bestMatchLabel = isRoleAdmin ? 'ACCESO ADMINISTRADOR' : 'ACCESO OPERATIVO';
 
             if (authPassword) {
-              const expectedKey = isRoleAdmin ? 'admin747' : 'operador747';
-              const progress = getPasswordProgress(authPassword, expectedKey);
-              if (progress > 0) {
+              // Buscar coincidencia parcial con cualquiera de las contraseñas para efectos visuales
+              const matchedKey = Object.keys(ADMIN_PASSWORDS).find(
+                (key) => key.toLowerCase().startsWith(authPassword.toLowerCase())
+              );
+              if (matchedKey) {
+                const progress = getPasswordProgress(authPassword, matchedKey);
                 bestMatchProgress = progress;
-                bestMatchLabel = ADMIN_PASSWORDS[expectedKey].name;
+                bestMatchLabel = ADMIN_PASSWORDS[matchedKey].name;
               }
             }
 
@@ -721,9 +812,116 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
                   {dispatchMode === 'OPERATOR' && (
                     <div className="bg-white/5 p-4 rounded-3xl border border-brand-orange/20 space-y-3">
                       <p className="text-[10px] text-brand-orange font-black uppercase tracking-[2px] font-teko italic">Acciones Operadora</p>
+                      {(() => {
+                        const coordination = getRestaurantCoordination(selectedOrder);
+                        const isRestaurantOrder = coordination.length > 0;
+                        const restaurantRequested = hasOperatorRestaurantRequest(selectedOrder);
+                        const restaurantsAccepted = coordination.length > 0 && coordination.every((restaurant) =>
+                          restaurant.status === 'ACCEPTED' || restaurant.status === 'READY' || restaurant.status === 'DELIVERED'
+                        );
+                        const canAssignDriver = selectedOrder.status === OrderStatus.CONFIRMED_BY_CLIENT
+                          ? !isRestaurantOrder
+                          : selectedOrder.status === OrderStatus.PICKING_UP && (!isRestaurantOrder || restaurantsAccepted);
+
+                        return (
+                          <div className="space-y-3">
+                            {selectedOrder.status === OrderStatus.PENDING_PRICE && (
+                              <div className="space-y-3">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">1. Cotizar Pedido al Cliente</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {[5, 7, 10].map((fee) => (
+                                    <button
+                                      key={fee}
+                                      onClick={() => setServiceQuotePrice(String(fee))}
+                                      className="py-2 rounded-xl bg-brand-orange/15 border border-brand-orange/30 text-brand-orange text-[10px] font-black font-teko uppercase tracking-widest italic"
+                                    >
+                                      Bs. {fee}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="number"
+                                    placeholder="Precio Platos Bs."
+                                    value={productQuotePrice}
+                                    onChange={(e) => setProductQuotePrice(e.target.value)}
+                                    className="flex-1 bg-brand-black/60 border border-white/10 rounded-xl px-3 py-2 text-center text-xs font-bold text-white outline-none focus:border-brand-orange"
+                                  />
+                                  <input
+                                    type="number"
+                                    placeholder="Costo Envio Bs."
+                                    value={serviceQuotePrice}
+                                    onChange={(e) => setServiceQuotePrice(e.target.value)}
+                                    className="flex-1 bg-brand-black/60 border border-white/10 rounded-xl px-3 py-2 text-center text-xs font-bold text-white outline-none focus:border-brand-orange"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleSendQuote(selectedOrder)}
+                                  className="w-full py-3 bg-brand-orange text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black"
+                                >
+                                  ENVIAR COTIZACION
+                                </button>
+                              </div>
+                            )}
+
+                            {selectedOrder.status === OrderStatus.CONFIRMED_BY_CLIENT && isRestaurantOrder && !restaurantRequested && (
+                              <div className="space-y-3 animate-in fade-in">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">2. Enviar pedido al restaurante</p>
+                                <button
+                                  onClick={() => handleRequestRestaurantPreparation(selectedOrder)}
+                                  className="w-full py-3 bg-brand-yellow text-brand-black rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black"
+                                >
+                                  PEDIR A RESTAURANTE
+                                </button>
+                              </div>
+                            )}
+
+                            {isRestaurantOrder && restaurantRequested && (
+                              <div className="space-y-2">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">Estado restaurante</p>
+                                {coordination.map((restaurant) => (
+                                  <div key={restaurant.restaurantId} className="bg-brand-black/50 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-3">
+                                    <span className="text-[10px] font-black text-white uppercase font-montserrat truncate">{restaurant.restaurant}</span>
+                                    <span className="text-[9px] font-black text-brand-yellow uppercase tracking-widest font-teko italic">
+                                      {restaurant.status === 'ACCEPTED' ? `ACEPTADO ${restaurant.prepTime} MIN` :
+                                       restaurant.status === 'READY' ? 'LISTO' :
+                                       restaurant.status === 'DELIVERED' ? 'RECOGIDO' : 'ESPERANDO'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {canAssignDriver && !selectedOrder.deliveryId && (
+                              <div className="space-y-3 animate-in fade-in">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">3. Asignar Conductor Libre</p>
+                                <select
+                                  value={selectedDriverId}
+                                  onChange={(e) => setSelectedDriverId(e.target.value)}
+                                  className="w-full bg-brand-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-white outline-none focus:border-brand-orange"
+                                >
+                                  <option value="">-- SELECCIONAR REPARTIDOR --</option>
+                                  {onlineDrivers.map((driver) => (
+                                    <option key={driver.id} value={driver.id}>
+                                      {driver.name.toUpperCase()} (Online)
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => handleAssignDriver(selectedOrder!)}
+                                  disabled={!selectedDriverId}
+                                  className="w-full py-3 bg-[#2E7D32] disabled:opacity-30 text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black"
+                                >
+                                  ASIGNAR CONDUCTOR
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       
                       {/* Caso 1: Ingresar precios de Cotización (Pendiente de precio) */}
-                      {selectedOrder.status === OrderStatus.PENDING_PRICE && (
+                      {false && selectedOrder!.status === OrderStatus.PENDING_PRICE && (
                         <div className="space-y-3">
                           <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">1. Cotizar Pedido al Cliente</p>
                           <div className="flex gap-2">
@@ -743,7 +941,7 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
                             />
                           </div>
                           <button
-                            onClick={() => handleSendQuote(selectedOrder)}
+                            onClick={() => handleSendQuote(selectedOrder!)}
                             className="w-full py-3 bg-brand-orange text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black"
                           >
                             ENVIAR COTIZACION
@@ -752,7 +950,7 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
                       )}
 
                       {/* Caso 2: Asignar Repartidor (Cuando el cliente ya aceptó) */}
-                      {selectedOrder.status === OrderStatus.CONFIRMED_BY_CLIENT && (
+                      {false && selectedOrder!.status === OrderStatus.CONFIRMED_BY_CLIENT && (
                         <div className="space-y-3 animate-in fade-in">
                           <p className="text-[9px] font-bold text-gray-400 uppercase font-teko italic">2. Asignar Conductor Libre</p>
                           <select
@@ -768,7 +966,7 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
                             ))}
                           </select>
                           <button
-                            onClick={() => handleAssignDriver(selectedOrder)}
+                            onClick={() => handleAssignDriver(selectedOrder!)}
                             disabled={!selectedDriverId}
                             className="w-full py-3 bg-[#2E7D32] disabled:opacity-30 text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black"
                           >
@@ -833,20 +1031,22 @@ export const AdminModule: React.FC<{ role?: UserRole }> = ({ role = UserRole.ADM
                   </div>
 
                   {/* Botones de fuerza operativa */}
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => handleForceStatus(selectedOrder, OrderStatus.COMPLETED)}
-                      className="flex-1 py-3 bg-[#2E7D32] hover:bg-[#2E7D32]/95 text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black shadow-lg"
-                    >
-                      FORZAR ENTRADO / COMPLETAR
-                    </button>
-                    <button
-                      onClick={() => handleForceStatus(selectedOrder, OrderStatus.CANCELLED)}
-                      className="px-3 py-3 bg-red-800/80 hover:bg-red-800 text-white rounded-2xl flex items-center justify-center active:scale-95 transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => handleForceStatus(selectedOrder, OrderStatus.COMPLETED)}
+                        className="flex-1 py-3 bg-[#2E7D32] hover:bg-[#2E7D32]/95 text-white rounded-2xl font-teko uppercase tracking-widest italic text-xs font-black shadow-lg"
+                      >
+                        FORZAR ENTRADO / COMPLETAR
+                      </button>
+                      <button
+                        onClick={() => handleForceStatus(selectedOrder, OrderStatus.CANCELLED)}
+                        className="px-3 py-3 bg-red-800/80 hover:bg-red-800 text-white rounded-2xl flex items-center justify-center active:scale-95 transition-all"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}

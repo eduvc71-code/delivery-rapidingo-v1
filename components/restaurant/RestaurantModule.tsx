@@ -548,11 +548,12 @@ export const RestaurantModule: React.FC = () => {
                           inputMode="numeric"
                           pattern="[0-9]*"
                           maxLength={2}
-                          value={prepVal.padStart(2, '0')}
+                          value={prepVal}
                           onChange={(e) => {
                             const next = e.target.value.replace(/\D/g, '').slice(0, 2);
                             setSelectedPrepTimes({ ...selectedPrepTimes, [order.id]: next });
                           }}
+                          placeholder="15"
                           className="w-16 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-center text-lg font-black text-brand-orange outline-none focus:border-brand-orange font-montserrat"
                         />
                         <span className="text-brand-orange">min</span>

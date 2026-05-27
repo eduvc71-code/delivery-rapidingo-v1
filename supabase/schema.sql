@@ -86,6 +86,15 @@ create table if not exists public.delivery_reports (
   completed_at timestamptz not null default now()
 );
 
+create table if not exists public.settings (
+  key text primary key,
+  value text not null
+);
+
+insert into public.settings (key, value)
+values ('dispatch_mode', 'AUTOMATIC')
+on conflict (key) do nothing;
+
 create index if not exists users_role_online_idx on public.users(role, online);
 create index if not exists users_email_idx on public.users(lower(email));
 create index if not exists orders_client_idx on public.orders(client_id, status, created_at desc);
@@ -124,6 +133,7 @@ on conflict (id) do update set
 alter table public.users enable row level security;
 alter table public.orders enable row level security;
 alter table public.delivery_reports enable row level security;
+alter table public.settings enable row level security;
 
 -- Development policies for the current device-id based app.
 -- Tighten these when Supabase Auth is enabled.
@@ -145,6 +155,12 @@ create policy "dev reports read" on public.delivery_reports for select to anon u
 drop policy if exists "dev reports write" on public.delivery_reports;
 create policy "dev reports write" on public.delivery_reports for insert to anon with check (true);
 
+drop policy if exists "dev settings read" on public.settings;
+create policy "dev settings read" on public.settings for select to anon using (true);
+
+drop policy if exists "dev settings write" on public.settings;
+create policy "dev settings write" on public.settings for all to anon using (true) with check (true);
+
 drop policy if exists "dev order media read" on storage.objects;
 create policy "dev order media read" on storage.objects
 for select to anon using (bucket_id = 'order-media');
@@ -152,3 +168,32 @@ for select to anon using (bucket_id = 'order-media');
 drop policy if exists "dev order media write" on storage.objects;
 create policy "dev order media write" on storage.objects
 for all to anon using (bucket_id = 'order-media') with check (bucket_id = 'order-media');
+
+-- Sincronizar auth.users con public.users automáticamente al registrarse en Supabase Auth
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  default_role user_role;
+begin
+  default_role := 'CLIENT'::user_role;
+
+  insert into public.users (id, name, email, role, phone, online)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.email,
+    default_role,
+    coalesce(new.raw_user_meta_data->>'phone', ''),
+    false
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    name = coalesce(excluded.name, public.users.name);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
