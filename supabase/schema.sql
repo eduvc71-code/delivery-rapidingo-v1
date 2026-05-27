@@ -172,17 +172,18 @@ for all to anon using (bucket_id = 'order-media') with check (bucket_id = 'order
 -- Sincronizar auth.users con public.users automáticamente al registrarse en Supabase Auth
 create or replace function public.handle_new_user()
 returns trigger as $$
-declare
-  default_role user_role;
 begin
-  default_role := 'CLIENT'::user_role;
-
   insert into public.users (id, name, email, role, phone, online)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
-    new.email,
-    default_role,
+    coalesce(
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      split_part(new.email, '@', 1),
+      'Usuario'
+    ),
+    coalesce(new.email, ''),
+    'CLIENT',
     coalesce(new.raw_user_meta_data->>'phone', ''),
     false
   )
@@ -190,6 +191,10 @@ begin
     email = excluded.email,
     name = coalesce(excluded.name, public.users.name);
   return new;
+exception
+  when others then
+    -- Previene bloquear el registro en auth.users si algo falla en public.users
+    return new;
 end;
 $$ language plpgsql security definer;
 
