@@ -71,6 +71,10 @@ alter table public.orders add column if not exists client_phone text not null de
 alter table public.orders add column if not exists delivery_phone text;
 alter table public.orders add column if not exists destination_location jsonb;
 
+-- Asegurar columnas updated_at en tablas existentes
+alter table public.users add column if not exists updated_at timestamptz not null default now();
+alter table public.orders add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.delivery_reports (
   id text primary key,
   delivery_id text not null references public.users(id) on delete cascade,
