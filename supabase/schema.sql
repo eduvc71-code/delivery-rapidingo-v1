@@ -206,3 +206,25 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Pre-cargar todos los 10 restaurantes, administrador y operadora en la base de datos
+INSERT INTO public.users (id, name, email, role, phone, online, device_id, location)
+VALUES
+  ('wings_drinks', 'wings_drinks', 'wings_drinks@rapidingo.com', 'CLIENT', '74721716', false, 'wings_drinks', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('el_brete', 'el_brete', 'el_brete@rapidingo.com', 'CLIENT', '69376937', false, 'el_brete', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('la_toscana_1', 'la_toscana_1', 'la_toscana_1@rapidingo.com', 'CLIENT', '73939626', false, 'la_toscana_1', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('la_toscana_2', 'la_toscana_2', 'la_toscana_2@rapidingo.com', 'CLIENT', '73939626', false, 'la_toscana_2', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('la_plazuela', 'la_plazuela', 'la_plazuela@rapidingo.com', 'CLIENT', '73900041', false, 'la_plazuela', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('la_coqueta', 'la_coqueta', 'la_coqueta@rapidingo.com', 'CLIENT', '72845195', false, 'la_coqueta', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('mr_grill', 'mr_grill', 'mr_grill@rapidingo.com', 'CLIENT', '77848655', false, 'mr_grill', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('el_benianito', 'el_benianito', 'el_benianito@rapidingo.com', 'CLIENT', '72815881', false, 'el_benianito', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('toby', 'toby', 'toby@rapidingo.com', 'CLIENT', '67270686', false, 'toby', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('la_toscana_rapido', 'la_toscana_rapido', 'la_toscana_rapido@rapidingo.com', 'CLIENT', '73939626', false, 'la_toscana_rapido', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('admin747', 'admin747', 'admin@rapidingo.com', 'CLIENT', '74721716', false, 'admin747', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}'),
+  ('operador747', 'operador747', 'operador@rapidingo.com', 'CLIENT', '74721716', false, 'operador747', '{"selfie":null,"latitude":0,"longitude":0,"isVerified":true}')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  email = EXCLUDED.email,
+  phone = EXCLUDED.phone,
+  location = EXCLUDED.location;
+
