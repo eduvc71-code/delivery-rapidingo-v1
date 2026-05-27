@@ -80,8 +80,130 @@ const ResponsiveShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   </div>
 );
 
-const hasValidLocation = (location?: { lat: number; lng: number }) =>
-  Boolean(location && (location.lat !== 0 || location.lng !== 0));
+const isAndroid = /Android/i.test(navigator.userAgent);
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  (window.navigator as any).standalone === true;
+
+const isInAppBrowser = () => {
+  const ua = navigator.userAgent;
+  return /FBAN|FBAV|Instagram|WhatsApp|Pinterest|GSA/i.test(ua) || 
+         (isAndroid && !/Chrome/i.test(ua));
+};
+
+const PwaInstallBanner: React.FC = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showBanner, setShowBanner] = useState(false);
+  const [platform, setPlatform] = useState<'ANDROID_IN_APP' | 'ANDROID_CHROME' | 'IOS_OTHER' | 'IOS_SAFARI' | null>(null);
+
+  useEffect(() => {
+    if (isStandalone()) {
+      setShowBanner(false);
+      return;
+    }
+
+    const inApp = isInAppBrowser();
+
+    if (isAndroid) {
+      if (inApp) {
+        setPlatform('ANDROID_IN_APP');
+        setShowBanner(true);
+      } else {
+        setPlatform('ANDROID_CHROME');
+        setShowBanner(true);
+      }
+    } else if (isIOS) {
+      const ua = navigator.userAgent;
+      const isSafari = /Safari/i.test(ua) && !/CriOS/i.test(ua) && !/FxiOS/i.test(ua) && !inApp;
+      if (isSafari) {
+        setPlatform('IOS_SAFARI');
+        setShowBanner(true);
+      } else {
+        setPlatform('IOS_OTHER');
+        setShowBanner(true);
+      }
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert("Por favor, presiona los tres puntos (⋮) en la esquina superior derecha y selecciona 'Instalar aplicación' o 'Agregar a la pantalla de inicio'.");
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowBanner(false);
+    }
+  };
+
+  if (!showBanner) return null;
+
+  return (
+    <div className="bg-brand-black/95 border-b border-brand-orange/30 p-4 shrink-0 animate-in slide-in-from-top duration-500 relative z-50 text-white shadow-2xl">
+      <div className="flex gap-3 items-start">
+        <div className="bg-brand-orange/15 text-brand-orange p-2 rounded-xl border border-brand-orange/20 shrink-0">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black text-brand-yellow uppercase tracking-widest font-teko italic">Instalar Aplicación</p>
+          
+          {platform === 'ANDROID_IN_APP' && (
+            <p className="text-xs font-bold text-gray-300 leading-snug mt-1 uppercase font-montserrat tracking-tight text-left">
+              Estás en un navegador interno. Abre este enlace en <span className="text-brand-orange font-extrabold">Google Chrome</span> para instalar la app y activar el GPS correctamente.
+            </p>
+          )}
+          
+          {platform === 'ANDROID_CHROME' && (
+            <div className="mt-1 space-y-2">
+              <p className="text-xs font-bold text-gray-300 leading-snug uppercase font-montserrat tracking-tight text-left">
+                Instala Rapidingo en tu pantalla de inicio para un GPS más preciso y acceso instantáneo.
+              </p>
+              <button
+                onClick={handleInstallClick}
+                className="bg-brand-orange hover:bg-brand-orange/90 text-white font-black text-[10px] uppercase font-teko tracking-wider px-4 py-2 rounded-xl italic transition-all active:scale-95"
+              >
+                Instalar Aplicación
+              </button>
+            </div>
+          )}
+
+          {platform === 'IOS_OTHER' && (
+            <p className="text-xs font-bold text-gray-300 leading-snug mt-1 uppercase font-montserrat tracking-tight text-left">
+              Para instalar la app en tu iPhone/iPad, por favor abre este enlace utilizando el navegador <span className="text-brand-orange font-extrabold">Apple Safari</span>.
+            </p>
+          )}
+
+          {platform === 'IOS_SAFARI' && (
+            <p className="text-xs font-bold text-gray-300 leading-snug mt-1 uppercase font-montserrat tracking-tight text-left">
+              Para instalar: Presiona el botón <span className="text-brand-yellow">Compartir</span> (caja con flecha arriba) y selecciona <span className="text-brand-orange font-extrabold">"Agregar a la pantalla de inicio"</span>.
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setShowBanner(false)}
+          className="text-gray-500 hover:text-white p-1 rounded-lg transition-colors shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const GpsRequiredGate: React.FC<{ role: UserRole; onLocation: (location: { lat: number; lng: number }) => void }> = ({ role, onLocation }) => {
   const [isRequesting, setIsRequesting] = useState(false);
@@ -142,10 +264,48 @@ const PwaApp: React.FC = () => {
   const { appMode, clientUser, deliveryUser, restaurantUser, registerUser, selectAppMode, isCheckingSession, updateCurrentUserLocation } = useApp();
   const forcedRole = getUrlRole();
   const activeRole = forcedRole || UserRole.CLIENT;
+  const [gpsApprovedInSession, setGpsApprovedInSession] = useState(false);
+  const [checkingGpsSession, setCheckingGpsSession] = useState(true);
 
   useEffect(() => {
     if (activeRole !== appMode) selectAppMode(activeRole);
   }, [activeRole, appMode, selectAppMode]);
+
+  // Validar GPS al inicio de la sesión para Cliente y Delivery
+  useEffect(() => {
+    const checkSessionGps = () => {
+      const user = activeRole === UserRole.CLIENT ? clientUser : (activeRole === UserRole.DELIVERY ? deliveryUser : null);
+      if (!user) {
+        setCheckingGpsSession(false);
+        return;
+      }
+
+      setCheckingGpsSession(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          updateCurrentUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setGpsApprovedInSession(true);
+          setCheckingGpsSession(false);
+        },
+        (error) => {
+          console.warn("GPS Realtime no disponible al inicio:", error);
+          setGpsApprovedInSession(false);
+          setCheckingGpsSession(false);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    };
+
+    checkSessionGps();
+  }, [activeRole, clientUser?.id, deliveryUser?.id]);
+
+  const handleGpsSuccess = (location: { lat: number; lng: number }) => {
+    updateCurrentUserLocation(location);
+    setGpsApprovedInSession(true);
+  };
 
   const goHome = () => {
     selectAppMode(null);
@@ -162,12 +322,14 @@ const PwaApp: React.FC = () => {
     }, 150);
   };
 
-  if (isCheckingSession) {
+  if (isCheckingSession || checkingGpsSession) {
     return (
       <ResponsiveShell>
-        <div className="h-full flex flex-col items-center justify-center space-y-4 hexagon-pattern">
+        <div className="h-full flex flex-col items-center justify-center space-y-4 hexagon-pattern animate-pulse">
           <div className="w-16 h-16 border-4 border-white/5 border-t-brand-orange rounded-full animate-spin shadow-[0_0_15px_rgba(255,106,0,0.3)]"></div>
-          <p className="font-black text-brand-orange animate-pulse uppercase tracking-[4px] text-[10px] font-teko italic">Iniciando...</p>
+          <p className="font-black text-brand-orange uppercase tracking-[4px] text-[10px] font-teko italic">
+            {checkingGpsSession ? 'VALIDANDO GPS REALTIME...' : 'Iniciando...'}
+          </p>
         </div>
       </ResponsiveShell>
     );
@@ -177,6 +339,7 @@ const PwaApp: React.FC = () => {
     if (!clientUser) {
       return (
         <ResponsiveShell>
+          <PwaInstallBanner />
           <Register
             role={UserRole.CLIENT}
             onRegister={(user) => {
@@ -190,10 +353,11 @@ const PwaApp: React.FC = () => {
 
     return (
       <ResponsiveShell>
-        {!hasValidLocation(clientUser.location) ? (
-          <GpsRequiredGate role={UserRole.CLIENT} onLocation={updateCurrentUserLocation} />
+        <PwaInstallBanner />
+        {!gpsApprovedInSession ? (
+          <GpsRequiredGate role={UserRole.CLIENT} onLocation={handleGpsSuccess} />
         ) : (
-        <ClientModule onClose={goHome} />
+          <ClientModule onClose={goHome} />
         )}
         <ThankYouDialog />
       </ResponsiveShell>
@@ -204,6 +368,7 @@ const PwaApp: React.FC = () => {
     if (!deliveryUser) {
       return (
         <ResponsiveShell>
+          <PwaInstallBanner />
           <Register
             role={UserRole.DELIVERY}
             onRegister={(user) => {
@@ -217,13 +382,14 @@ const PwaApp: React.FC = () => {
 
     return (
       <ResponsiveShell>
-        {!hasValidLocation(deliveryUser.location) ? (
-          <GpsRequiredGate role={UserRole.DELIVERY} onLocation={updateCurrentUserLocation} />
+        <PwaInstallBanner />
+        {!gpsApprovedInSession ? (
+          <GpsRequiredGate role={UserRole.DELIVERY} onLocation={handleGpsSuccess} />
         ) : (
-        <DeliveryModule
-          onClose={closeInstalledApp}
-          onMinimize={goHome}
-        />
+          <DeliveryModule
+            onClose={closeInstalledApp}
+            onMinimize={goHome}
+          />
         )}
         <ThankYouDialog />
       </ResponsiveShell>
