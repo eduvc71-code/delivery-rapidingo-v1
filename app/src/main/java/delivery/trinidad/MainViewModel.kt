@@ -11,7 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import delivery.trinidad.data.SupabaseApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -302,10 +301,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         isCheckingSession = true
         val savedUserId = prefs.getString("user_id", null)
         val savedEmail = prefs.getString("user_email", null)
-        val googleEmail = GoogleSignIn.getLastSignedInAccount(appContext)?.email
         val appId = getAppId()
         val candidateIds = listOfNotNull(savedUserId, appId).distinct()
-        val candidateEmails = listOfNotNull(savedEmail, googleEmail).map { it.trim().lowercase() }.filter { it.isNotBlank() }.distinct()
+        val candidateEmails = listOfNotNull(savedEmail).map { it.trim().lowercase() }.filter { it.isNotBlank() }.distinct()
 
         viewModelScope.launch {
             runCatching {

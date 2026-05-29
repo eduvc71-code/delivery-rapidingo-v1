@@ -86,14 +86,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.Task
 import delivery.trinidad.ui.theme.DeliveryRapidingoTheme
 import delivery.trinidad.ui.theme.DeliveryRapidingoV2Theme
+import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
@@ -574,37 +572,7 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
     val locLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         hasLocationPerm = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
     }
-    val googleSignInClient = remember(context) {
-        GoogleSignIn.getClient(
-            context,
-            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("916799303545-7cgugqk1u0t920nn0aijbftr3atopj5t.apps.googleusercontent.com")
-                .requestEmail()
-                .build()
-        )
-    }
-    val gmailLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val accountEmail = account.email.orEmpty().lowercase()
-            val accountName = account.displayName?.takeIf { it.isNotBlank() }
-                ?: accountEmail.substringBefore('@')
-
-            if (accountEmail.isBlank()) {
-                Toast.makeText(context, "No se pudo leer el correo Gmail", Toast.LENGTH_LONG).show()
-            } else {
-                googleUserId = account.id?.let { "google_$it" } ?: accountEmail
-                email = accountEmail
-                name = accountName.uppercase()
-                viewModel.loginRegisteredEmail(accountEmail, role, context)
-                Toast.makeText(context, "Gmail conectado: $accountEmail", Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: ApiException) {
-            Log.e("Rapidingo", "Error Gmail sign-in: ${e.statusCode}", e)
-            Toast.makeText(context, "No se pudo iniciar con Gmail. Codigo: ${e.statusCode}", Toast.LENGTH_LONG).show()
-        }
-    }
+    val googleScope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -664,8 +632,19 @@ fun RegisterScreen(viewModel: MainViewModel, role: UserRole) {
 
         OutlinedButton(
             onClick = {
-                googleSignInClient.signOut().addOnCompleteListener {
-                    gmailLauncher.launch(googleSignInClient.signInIntent)
+                googleScope.launch {
+                    runCatching {
+                        signInWithGoogleCredential(context)
+                    }.onSuccess { account ->
+                        googleUserId = account.userId
+                        email = account.email
+                        name = account.displayName.uppercase()
+                        viewModel.loginRegisteredEmail(account.email, role, context)
+                        Toast.makeText(context, "Gmail conectado: ${account.email}", Toast.LENGTH_SHORT).show()
+                    }.onFailure { error ->
+                        Log.e("Rapidingo", "Error Gmail Credential Manager", error)
+                        Toast.makeText(context, error.message ?: "No se pudo iniciar con Gmail", Toast.LENGTH_LONG).show()
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(58.dp),

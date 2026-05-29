@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { ClientModule } from './components/client/ClientModule';
-import { DeliveryModule } from './components/delivery/DeliveryModule';
-import { RestaurantModule } from './components/restaurant/RestaurantModule';
-import { AdminModule } from './components/admin/AdminModule';
-import { Register } from './components/Register';
 import { UserRole } from './types';
 import { CheckCircle2, Loader2, MapPin } from 'lucide-react';
+
+const ClientModule = lazy(() => import('./components/client/ClientModule').then((module) => ({ default: module.ClientModule })));
+const DeliveryModule = lazy(() => import('./components/delivery/DeliveryModule').then((module) => ({ default: module.DeliveryModule })));
+const RestaurantModule = lazy(() => import('./components/restaurant/RestaurantModule').then((module) => ({ default: module.RestaurantModule })));
+const AdminModule = lazy(() => import('./components/admin/AdminModule').then((module) => ({ default: module.AdminModule })));
+const Register = lazy(() => import('./components/Register').then((module) => ({ default: module.Register })));
 
 const getUrlRole = (): UserRole | null => {
   const injectedRole = (window as Window & { __RAPIDINGO_ROLE?: string }).__RAPIDINGO_ROLE;
@@ -78,6 +79,16 @@ const ResponsiveShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {children}
     </div>
   </div>
+);
+
+const ModuleFallback: React.FC = () => (
+  <div className="h-full flex items-center justify-center bg-brand-black">
+    <Loader2 className="text-brand-orange animate-spin" size={28} />
+  </div>
+);
+
+const LazyModule: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Suspense fallback={<ModuleFallback />}>{children}</Suspense>
 );
 
 const isAndroid = /Android/i.test(navigator.userAgent);
@@ -340,13 +351,15 @@ const PwaApp: React.FC = () => {
       return (
         <ResponsiveShell>
           <PwaInstallBanner />
-          <Register
-            role={UserRole.CLIENT}
-            onRegister={(user) => {
-              registerUser(user);
-              selectAppMode(UserRole.CLIENT);
-            }}
-          />
+          <LazyModule>
+            <Register
+              role={UserRole.CLIENT}
+              onRegister={(user) => {
+                registerUser(user);
+                selectAppMode(UserRole.CLIENT);
+              }}
+            />
+          </LazyModule>
         </ResponsiveShell>
       );
     }
@@ -357,7 +370,9 @@ const PwaApp: React.FC = () => {
         {!gpsApprovedInSession ? (
           <GpsRequiredGate role={UserRole.CLIENT} onLocation={handleGpsSuccess} />
         ) : (
-          <ClientModule onClose={goHome} />
+          <LazyModule>
+            <ClientModule onClose={goHome} />
+          </LazyModule>
         )}
         <ThankYouDialog />
       </ResponsiveShell>
@@ -369,13 +384,15 @@ const PwaApp: React.FC = () => {
       return (
         <ResponsiveShell>
           <PwaInstallBanner />
-          <Register
-            role={UserRole.DELIVERY}
-            onRegister={(user) => {
-              registerUser(user);
-              selectAppMode(UserRole.DELIVERY);
-            }}
-          />
+          <LazyModule>
+            <Register
+              role={UserRole.DELIVERY}
+              onRegister={(user) => {
+                registerUser(user);
+                selectAppMode(UserRole.DELIVERY);
+              }}
+            />
+          </LazyModule>
         </ResponsiveShell>
       );
     }
@@ -386,10 +403,12 @@ const PwaApp: React.FC = () => {
         {!gpsApprovedInSession ? (
           <GpsRequiredGate role={UserRole.DELIVERY} onLocation={handleGpsSuccess} />
         ) : (
-          <DeliveryModule
-            onClose={closeInstalledApp}
-            onMinimize={goHome}
-          />
+          <LazyModule>
+            <DeliveryModule
+              onClose={closeInstalledApp}
+              onMinimize={goHome}
+            />
+          </LazyModule>
         )}
         <ThankYouDialog />
       </ResponsiveShell>
@@ -399,7 +418,9 @@ const PwaApp: React.FC = () => {
   if (activeRole === UserRole.RESTAURANT) {
     return (
       <ResponsiveShell>
-        <RestaurantModule />
+        <LazyModule>
+          <RestaurantModule />
+        </LazyModule>
         <ThankYouDialog />
       </ResponsiveShell>
     );
@@ -408,7 +429,9 @@ const PwaApp: React.FC = () => {
   if (activeRole === UserRole.ADMIN || activeRole === UserRole.OPERATOR) {
     return (
       <ResponsiveShell>
-        <AdminModule role={activeRole} />
+        <LazyModule>
+          <AdminModule role={activeRole} />
+        </LazyModule>
         <ThankYouDialog />
       </ResponsiveShell>
     );

@@ -21,6 +21,8 @@ fun secretProperty(name: String): String {
 
 val supabaseUrl = secretProperty("SUPABASE_URL")
 val supabaseAnonKey = secretProperty("SUPABASE_ANON_KEY")
+val googleSignInServerClientId = secretProperty("GOOGLE_SIGN_IN_SERVER_CLIENT_ID")
+    .ifBlank { "916799303545-7cgugqk1u0t920nn0aijbftr3atopj5t.apps.googleusercontent.com" }
 
 android {
     namespace = "delivery.trinidad"
@@ -34,6 +36,7 @@ android {
         versionName = "1.0"
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "GOOGLE_SIGN_IN_SERVER_CLIENT_ID", "\"$googleSignInServerClientId\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -115,7 +118,9 @@ dependencies {
     implementation(libs.androidx.concurrent.futures)
     implementation("androidx.camera:camera-extensions:1.6.0")
     implementation("com.google.guava:guava:33.5.0-android")
-    implementation(libs.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.osmdroid)

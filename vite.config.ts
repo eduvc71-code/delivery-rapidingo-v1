@@ -38,7 +38,24 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      emptyOutDir: true
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('recharts')) return 'charts';
+              if (id.includes('@supabase')) return 'supabase';
+              if (id.includes('lucide-react')) return 'icons';
+              return 'vendor';
+            }
+            if (id.includes('/components/admin/')) return 'admin';
+            if (id.includes('/components/client/')) return 'client';
+            if (id.includes('/components/delivery/')) return 'delivery';
+            if (id.includes('/components/restaurant/')) return 'restaurant';
+            return undefined;
+          }
+        }
+      }
     }
   };
 });
